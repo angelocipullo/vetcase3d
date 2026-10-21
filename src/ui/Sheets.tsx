@@ -50,7 +50,7 @@ export function RecordSheet() {
   const caseId = useGame((s) => s.caseId);
   const exams = useGame((s) => s.exams);
   const c = CASES[caseId];
-  const p = c.patient;
+  const p = useGame((s) => s.patient);
   return (
     <Sheet title="📋 Cartella clinica">
       <section className="card">

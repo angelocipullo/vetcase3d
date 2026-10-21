@@ -1,7 +1,9 @@
 import { create } from 'zustand';
+import { audio } from './audio/engine';
 import { CASES } from './game/cases';
 import { ExamRecord, LISTEN_REQUIRED_MS } from './game/evaluation';
-import { CaseId, Diagnosis, HeartSound, LungSound, SyringePhase, TechniqueError, Tool } from './game/types';
+import { CASE_LIST } from './game/cases';
+import { CaseId, Diagnosis, HeartSound, LungSound, Patient, SyringePhase, TechniqueError, Tool } from './game/types';
 import type { CameraView } from './three/anatomy';
 
 export interface SyringeState {
@@ -15,24 +17,39 @@ export interface SyringeState {
 }
 
 type Sheet = 'record' | 'diagnosis' | null;
-type Screen = 'menu' | 'exam' | 'result';
+type Screen = 'title' | 'exam' | 'result';
 
 interface GameState {
   screen: Screen;
   caseId: CaseId;
+  /** Paziente della partita: segnalamento del caso, nome sorteggiato. */
+  patient: Patient;
+  /** Scheda di accettazione mostrata all'arrivo del paziente. */
+  intro: boolean;
+  /** Shader della scena compilati: finché è false il Canvas non disegna (vedi ShaderWarmup). */
+  sceneReady: boolean;
+  /** Audio disattivato dall'utente (preferenza salvata). */
+  muted: boolean;
   tool: Tool;
   stress: number;
   happyUntil: number;
   guided: boolean;
   exams: ExamRecord;
   syringe: SyringeState;
-  thermo: { active: boolean; progress: number; inserted: boolean };
+  /** Termometro: active = posizionato sotto la coda; lubed = punta lubrificata; inserted = dentro. */
+  thermo: { active: boolean; progress: number; inserted: boolean; lubed: boolean };
   prompt: 'heart' | 'lungs' | null;
   toast: { text: string; id: number } | null;
   sheet: Sheet;
   diagnosis?: Diagnosis;
 
+  /** Nuova partita: diagnosi (caso) e nome del paziente casuali. */
+  startRandom: () => void;
+  /** Rigioca lo stesso caso con lo stesso paziente. */
   startCase: (id: CaseId) => void;
+  closeIntro: () => void;
+  setSceneReady: () => void;
+  toggleMute: () => void;
   toMenu: () => void;
   setTool: (t: Tool) => void;
   setGuided: (g: boolean) => void;
@@ -70,34 +87,68 @@ const freshSyringe = (): SyringeState => ({
 
 let toastId = 0;
 
+/** Nomi sorteggiabili: il sesso resta quello del caso (anamnesi e aggettivi sono declinati). */
+const NAMES: Record<Patient['sex'], string[]> = {
+  F: ['Luna', 'Bella', 'Kira', 'Nala', 'Maya', 'Lilly', 'Zoe', 'Penny', 'Molly', 'Stella', 'Gaia', 'Mia'],
+  M: ['Rocky', 'Max', 'Leo', 'Thor', 'Nino', 'Bruno', 'Oscar', 'Rex', 'Charlie', 'Ugo', 'Otto', 'Zeus'],
+};
+
+const pick = <T,>(list: readonly T[]): T => list[Math.floor(Math.random() * list.length)];
+
+const freshVisit = () => ({
+  screen: 'exam' as const,
+  intro: true,
+  tool: Tool.Hand,
+  stress: 20,
+  exams: freshExams(),
+  syringe: freshSyringe(),
+  thermo: { active: false, progress: 0, inserted: false, lubed: false },
+  prompt: null,
+  sheet: null,
+  diagnosis: undefined,
+});
+
 export const useGame = create<GameState>((set, get) => ({
-  screen: 'menu',
+  screen: 'title',
   caseId: CaseId.Parvo,
+  patient: CASES[CaseId.Parvo].patient,
+  intro: false,
+  sceneReady: false,
+  muted: audio.isMuted(),
   tool: Tool.Hand,
   stress: 20,
   happyUntil: 0,
   guided: false,
   exams: freshExams(),
   syringe: freshSyringe(),
-  thermo: { active: false, progress: 0, inserted: false },
+  thermo: { active: false, progress: 0, inserted: false, lubed: false },
   prompt: null,
   toast: null,
   sheet: null,
 
-  startCase: (id) =>
+  startRandom: () => {
+    const last = get().screen === 'title' ? undefined : get().caseId;
+    const c = pick(CASE_LIST.filter((x) => x.id !== last));
+    // caso diverso dal precedente → il Canvas (key=caseId) viene ricreato e va ricompilato
+    set({ ...freshVisit(), sceneReady: false, caseId: c.id, patient: { ...c.patient, name: pick(NAMES[c.patient.sex]) } });
+  },
+  startCase: (id) => {
+    const same = id === get().caseId;
     set({
-      screen: 'exam',
+      ...freshVisit(),
+      sceneReady: same && get().screen !== 'title' && get().sceneReady,
       caseId: id,
-      tool: Tool.Hand,
-      stress: 20,
-      exams: freshExams(),
-      syringe: freshSyringe(),
-      thermo: { active: false, progress: 0, inserted: false },
-      prompt: null,
-      sheet: null,
-      diagnosis: undefined,
-    }),
-  toMenu: () => set({ screen: 'menu', sheet: null }),
+      patient: same ? get().patient : CASES[id].patient,
+    });
+  },
+  closeIntro: () => set({ intro: false }),
+  setSceneReady: () => set({ sceneReady: true }),
+  toggleMute: () => {
+    const muted = !get().muted;
+    audio.setMuted(muted);
+    set({ muted });
+  },
+  toMenu: () => set({ screen: 'title', sheet: null, intro: false, sceneReady: false }),
 
   setTool: (t) => {
     const s = get();
@@ -107,13 +158,13 @@ export const useGame = create<GameState>((set, get) => ({
         return;
       }
       if (s.stress > 80) {
-        s.showToast(`${CASES[s.caseId].patient.name} è troppo agitato. Prima qualche coccola!`);
+        s.showToast(`${s.patient.name} è troppo agitato. Prima qualche coccola!`);
         return;
       }
       set({ tool: t, syringe: freshSyringe(), thermo: { ...s.thermo, active: false } });
       return;
     }
-    set({ tool: t, thermo: { active: false, progress: 0, inserted: false } });
+    set({ tool: t, thermo: { active: false, progress: 0, inserted: false, lubed: false } });
   },
   setGuided: (g) => set({ guided: g }),
   addStress: (n) => set((s) => ({ stress: Math.max(0, Math.min(100, s.stress + n)) })),

@@ -77,81 +77,108 @@ export function ListenPrompt() {
   );
 }
 
+/** Secondi di pressione per far avanzare il termometro prima che inizi la misura. */
+const INSERT_TIME = 0.6;
+const READ_TIME = 3.5;
+
 export function ThermometerPanel() {
   const thermo = useGame((s) => s.thermo);
   const caseId = useGame((s) => s.caseId);
   const done = useGame((s) => s.exams.temperature);
+  const name = useGame((s) => s.patient.name);
   const g = useGame.getState;
   const target = CASES[caseId].vitals.temperature;
   const [holding, setHolding] = useState(false);
   const [result, setResult] = useState<number | null>(null);
+  const insertT = useRef(0);
 
   useRaf((dt) => {
     const s = g();
-    if (holding) {
-      const p = Math.min(1, s.thermo.progress + dt / 3.5);
-      s.patchThermo({ progress: p, inserted: true });
-      if (p >= 1) {
-        setHolding(false);
-        audio.beep(3);
-        s.setTemperature(target);
-        s.addStress(5);
-        setResult(target);
-      }
+    if (!holding) return;
+    // prima l'inserimento (il termometro scorre dentro), poi la lettura
+    if (insertT.current < INSERT_TIME) {
+      insertT.current += dt;
+      return;
+    }
+    const p = Math.min(1, s.thermo.progress + dt / READ_TIME);
+    s.patchThermo({ progress: p });
+    if (p >= 1) {
+      setHolding(false);
+      audio.beep(3);
+      s.setTemperature(target);
+      s.addStress(5);
+      setResult(target);
     }
   }, holding);
 
   if (!thermo.active) {
     return (
       <div className="panel compact">
-        <p className="panel-title">🌡️ Tocca sotto la coda per inserire il termometro</p>
+        <p className="panel-title">🌡️ Tocca sotto la coda per posizionare il termometro</p>
         {done !== undefined && <p className="hint">Ultima misura: {done.toFixed(1)} °C</p>}
       </div>
     );
   }
 
   const shown = 35.5 + (target - 35.5) * (1 - Math.pow(1 - thermo.progress, 3));
+  const startHold = () => {
+    audio.unlock();
+    const s = g();
+    if (!s.thermo.lubed) {
+      s.addError(TechniqueError.NoLubricant);
+      s.addStress(8);
+      s.showToast(`Senza lubrificante è fastidioso: ${name} si irrigidisce`);
+    }
+    insertT.current = 0;
+    s.patchThermo({ inserted: true });
+    setHolding(true);
+  };
   const release = () => {
     if (!holding) return;
     setHolding(false);
     if (g().thermo.progress < 1) {
-      g().patchThermo({ progress: 0 });
+      g().patchThermo({ progress: 0, inserted: false });
       g().addError(TechniqueError.InterruptedReading);
       g().addStress(4);
-      g().showToast('Hai tolto il termometro troppo presto: riprova');
+      g().showToast('Hai tolto il termometro prima del bip: riprova');
     }
   };
+  const extract = () => {
+    g().patchThermo({ active: false, inserted: false, progress: 0, lubed: false });
+    g().setTool(Tool.Hand);
+  };
+  const phase = result !== null ? 'done' : !holding ? 'ready' : insertT.current < INSERT_TIME ? 'insert' : 'read';
 
   return (
     <div className="panel">
+      <p className="panel-title">🌡️ Temperatura rettale</p>
       <div className="lcd">{thermo.progress > 0 ? shown.toFixed(1) : '--.-'} °C</div>
       {result === null ? (
-        <button
-          className={`hold ${holding ? 'active' : ''}`}
-          onPointerDown={() => {
-            audio.unlock();
-            setHolding(true);
-          }}
-          onPointerUp={release}
-          onPointerLeave={release}
-          onPointerCancel={release}
-        >
-          {holding ? 'Tieni fermo…' : 'Tieni premuto per misurare'}
-        </button>
+        <>
+          <div className="steps">
+            <button className={`step ${thermo.lubed ? 'ok' : ''}`} onClick={() => g().patchThermo({ lubed: true })} disabled={holding}>
+              {thermo.lubed ? '✓ Punta lubrificata' : '1 Lubrifica la punta'}
+            </button>
+          </div>
+          <button
+            className={`hold ${holding ? 'active' : ''}`}
+            onPointerDown={startHold}
+            onPointerUp={release}
+            onPointerLeave={release}
+            onPointerCancel={release}
+          >
+            {phase === 'insert' ? 'Inserisco delicatamente…' : phase === 'read' ? 'Tieni fermo fino al bip…' : '2 Tieni premuto: inserisci e misura'}
+          </button>
+        </>
       ) : (
-        <button
-          className="primary"
-          onClick={() => {
-            g().patchThermo({ active: false, inserted: false, progress: 0 });
-            g().setTool(Tool.Hand);
-          }}
-        >
-          Fatto · {result.toFixed(1)} °C
+        <button className="primary" onClick={extract}>
+          Estrai · {result.toFixed(1)} °C
         </button>
       )}
       <div className="meter-track thin">
         <div className="meter-fill" style={{ width: `${thermo.progress * 100}%`, background: 'var(--orange)' }} />
       </div>
+      {result === null && <p className="hint">Riferimento nel cane: 37,5–39,2 °C</p>}
     </div>
   );
 }

@@ -1,45 +1,110 @@
+import { useProgress } from '@react-three/drei';
 import { useEffect, useState } from 'react';
-import { CASE_LIST, CASES } from '../game/cases';
+import { CASES } from '../game/cases';
 import { evaluate } from '../game/evaluation';
 import { DIAGNOSIS_LABEL, EXAM_LABEL, HEART_LABEL, LUNG_LABEL, OUTCOME_LABEL, TECH_ERROR_LABEL } from '../game/labels';
 import { Outcome } from '../game/types';
 import { useGame } from '../store';
 import { audio } from '../audio/engine';
+import { preloadScene } from '../three/preload';
+import { SoundToggle } from './SoundToggle';
 
-export function MenuScreen() {
-  const start = useGame((s) => s.startCase);
+const STEPS: [string, string, string][] = [
+  ['🩺', 'Visita', 'Ausculta cuore e polmoni, misura la temperatura'],
+  ['💉', 'Esami', 'Esegui il prelievo e leggi l’emocromo'],
+  ['🧠', 'Diagnosi', 'Indovina la malattia e giustificala con gli esami'],
+];
+
+/** Schermata iniziale: precarica la scena 3D e avvia una visita con paziente e diagnosi casuali. */
+export function TitleScreen() {
+  const startRandom = useGame((s) => s.startRandom);
+  const { active, loaded, total, errors } = useProgress();
+  const [ready, setReady] = useState(false);
+  const [starting, setStarting] = useState(false);
+
+  useEffect(() => {
+    preloadScene();
+  }, []);
+
+  // pronto quando il loading manager è fermo e tutto è caricato (con un attimo di margine: le texture
+  // dentro i .glb partono solo dopo che il file è stato letto)
+  useEffect(() => {
+    if (ready) return;
+    if (errors.length > 0 || (!active && total > 0 && loaded === total)) {
+      const t = setTimeout(() => setReady(true), 350);
+      return () => clearTimeout(t);
+    }
+  }, [active, loaded, total, errors.length, ready]);
+
+  const pct = ready ? 100 : total ? Math.min(99, Math.round((loaded / total) * 100)) : 0;
+  const start = () => {
+    if (!ready || starting) return;
+    audio.unlock();
+    setStarting(true);
+    // lascia disegnare il feedback prima di montare la scena 3D
+    setTimeout(startRandom, 60);
+  };
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') start();
+      if (e.key === 'm' || e.key === 'M') useGame.getState().toggleMute();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+
   return (
-    <div className="screen menu">
-      <header className="brand">
-        <div className="paw">🐾</div>
-        <h1>VetCase 3D</h1>
-        <p>Visita il paziente, raccogli i dati, trova la diagnosi.</p>
-      </header>
-      <div className="case-list">
-        {CASE_LIST.map((c) => (
-          <button
-            key={c.id}
-            className="case-card"
-            onClick={() => {
-              audio.unlock();
-              start(c.id);
-            }}
-          >
-            <span className="swatch" style={{ background: c.coat.base, borderColor: c.coat.ears }} />
-            <span className="case-text">
-              <b>{c.patient.name}</b>
-              <span>{c.title}</span>
-            </span>
-            <span className="diff">{'●'.repeat(c.difficulty)}{'○'.repeat(3 - c.difficulty)}</span>
-          </button>
-        ))}
-      </div>
+    <div className="screen title-screen">
+      <div className="title-glow" aria-hidden />
+      <SoundToggle className="title-sound" />
+      <main className="title-main">
+        <p className="eyebrow">Simulatore clinico veterinario</p>
+        <h1 className="title-logo">
+          VetCase <span>3D</span>
+        </h1>
+        <p className="title-tagline">
+          Un paziente misterioso ti aspetta in ambulatorio.
+          <br />
+          Visitalo, raccogli i dati e trova la diagnosi.
+        </p>
+
+        <button
+          className={`start-btn ${ready ? 'ready' : ''}`}
+          onClick={start}
+          disabled={!ready}
+          style={{ '--pct': `${pct}%` } as React.CSSProperties}
+        >
+          <span className="start-fill" aria-hidden />
+          <span className="start-label">
+            {starting ? 'Entro in ambulatorio…' : ready ? 'Inizia' : `Preparo l’ambulatorio… ${pct}%`}
+          </span>
+        </button>
+        <p className="title-hint">{ready ? 'Tutto pronto · su desktop puoi premere Invio' : 'Carico il paziente e la sala visita'}</p>
+
+        <ol className="title-steps">
+          {STEPS.map(([icon, name, text]) => (
+            <li key={name}>
+              <span className="step-icon">{icon}</span>
+              <b>{name}</b>
+              <span>{text}</span>
+            </li>
+          ))}
+        </ol>
+      </main>
+      <p className="credits">
+        Cane 3D: “PitBull” di{' '}
+        <a href="https://sketchfab.com/3d-models/2be37d5b9f754ed4bcc2d8f41b23a1d7" target="_blank" rel="noreferrer">
+          Joseph AYYAD
+        </a>{' '}
+        (CC BY 4.0, modificato) · ambulatorio: asset CC0 di Poly Haven · Didattico, non sostituisce la formazione clinica
+      </p>
     </div>
   );
 }
 
 export function ResultScreen() {
-  const { caseId, exams, diagnosis, startCase, toMenu } = useGame();
+  const { caseId, exams, diagnosis, patient, startCase, startRandom, toMenu } = useGame();
   const c = CASES[caseId];
   const ev = diagnosis ? evaluate(c, exams, diagnosis) : null;
   const target = ev?.score ?? 0;
@@ -58,6 +123,12 @@ export function ResultScreen() {
 
   return (
     <div className="screen result">
+      <header className="result-head">
+        <p className="eyebrow">Esito della visita</p>
+        <h1>
+          Il caso di {patient.name}
+        </h1>
+      </header>
       <div className={`badge ${ev.outcome}`}>
         <span className="emoji">{o.emoji}</span>
         <h2>{o.title}</h2>
@@ -135,9 +206,10 @@ export function ResultScreen() {
       </section>
 
       <div className="row sticky">
-        <button className="ghost" onClick={toMenu}>Altri casi</button>
-        <button className="primary" onClick={() => startCase(caseId)}>Rifai il caso</button>
+        <button className="ghost" onClick={() => startCase(caseId)}>Rivisita {patient.name}</button>
+        <button className="primary" onClick={startRandom}>Nuovo paziente →</button>
       </div>
+      <button className="link center" onClick={toMenu}>Torna al titolo</button>
     </div>
   );
 }

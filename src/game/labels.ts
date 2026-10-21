@@ -63,4 +63,5 @@ export const TECH_ERROR_LABEL: Record<TechniqueError, string> = {
   [TechniqueError.NoDisinfection]: 'Cute non disinfettata',
   [TechniqueError.Hematoma]: 'Ematoma (laccio rimosso dopo l’ago)',
   [TechniqueError.InterruptedReading]: 'Lettura termometro interrotta',
+  [TechniqueError.NoLubricant]: 'Termometro inserito senza lubrificante',
 };

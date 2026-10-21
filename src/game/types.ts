@@ -73,6 +73,7 @@ export enum TechniqueError {
   NoDisinfection = 'no_disinfection',
   Hematoma = 'hematoma',
   InterruptedReading = 'interrupted_reading',
+  NoLubricant = 'no_lubricant',
 }
 
 export enum CaseId {

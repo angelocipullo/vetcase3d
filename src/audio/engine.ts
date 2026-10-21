@@ -1,5 +1,28 @@
 import { HeartSound, LungSound, Vitals } from '../game/types';
 
+const BARK_SAMPLES = ['bark_1', 'bark_2'];
+
+const MUTE_KEY = 'vetcase3d.muted';
+function readMuted() {
+  try {
+    return localStorage.getItem(MUTE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+/** Rumore d'ambiente dell'ambulatorio (public/audio/ambient_hospital.mp3), in loop continuo. */
+const AMBIENT_SAMPLE = 'ambient_hospital';
+const AMBIENT_VOLUME = 1.1; // sottofondo: la registrazione è già bassa (media ≈ -43 dB)
+const AMBIENT_XFADE = 4; // secondi di sovrapposizione fra una ripetizione e la successiva
+/** Durante l'auscultazione le olive del fonendo isolano dall'ambiente. */
+const AMBIENT_DUCK = 0.2;
+
+/** Curve a potenza costante (sin/cos) per il crossfade: niente calo di volume a metà. */
+const XFADE_STEPS = 64;
+const FADE_IN = Float32Array.from({ length: XFADE_STEPS }, (_, i) => Math.sin((i / (XFADE_STEPS - 1)) * (Math.PI / 2)));
+const FADE_OUT = Float32Array.from({ length: XFADE_STEPS }, (_, i) => Math.cos((i / (XFADE_STEPS - 1)) * (Math.PI / 2)));
+
 /**
  * Motore audio dell'auscultazione.
  *
@@ -27,6 +50,12 @@ class AuscultationEngine {
   private vitals?: Vitals;
   private sampleCache = new Map<string, AudioBuffer | null>();
   private sampleNodes: AudioBufferSourceNode[] = [];
+  private ambientBus?: GainNode;
+  private ambientNext = 0;
+  private ambientTimer?: number;
+  /** Uscita generale: tutti i suoni passano di qui (serve al pulsante muto). */
+  private out?: GainNode;
+  private muted = readMuted();
   private usingHeartSample = false;
   private usingLungSample = false;
   running = false;
@@ -34,6 +63,9 @@ class AuscultationEngine {
   private ensure() {
     if (!this.ctx) {
       this.ctx = new AudioContext();
+      this.out = this.ctx.createGain();
+      this.out.gain.value = this.muted ? 0 : 1;
+      this.out.connect(this.ctx.destination);
       this.master = this.ctx.createGain();
       this.master.gain.value = 0.9;
       // il fonendoscopio taglia le alte frequenze
@@ -41,7 +73,7 @@ class AuscultationEngine {
       steth.type = 'lowpass';
       steth.frequency.value = 900;
       const comp = this.ctx.createDynamicsCompressor();
-      this.master.connect(steth).connect(comp).connect(this.ctx.destination);
+      this.master.connect(steth).connect(comp).connect(this.out);
       this.heartBus = this.ctx.createGain();
       this.lungBus = this.ctx.createGain();
       this.heartBus.gain.value = 0;
@@ -65,9 +97,71 @@ class AuscultationEngine {
     return this.ctx;
   }
 
+  isMuted() {
+    return this.muted;
+  }
+
+  /** Silenzia/riattiva tutto l'audio (preferenza salvata nel browser). */
+  setMuted(muted: boolean) {
+    this.muted = muted;
+    try {
+      localStorage.setItem(MUTE_KEY, muted ? '1' : '0');
+    } catch {
+      /* storage non disponibile: vale solo per questa sessione */
+    }
+    if (this.ctx && this.out) this.out.gain.setTargetAtTime(muted ? 0 : 1, this.ctx.currentTime, 0.05);
+  }
+
   /** Va chiamato da un gesto utente almeno una volta (policy autoplay iOS). */
   unlock() {
     this.ensure();
+    // precarica gli abbai registrati (public/audio/bark_1.mp3, bark_2.mp3)
+    for (const name of BARK_SAMPLES) void this.loadSample(name);
+    void this.startAmbient();
+  }
+
+  /**
+   * Avvia l'ambiente in loop infinito. Ogni ripetizione parte AMBIENT_XFADE secondi prima della fine
+   * della precedente e si incrociano con curve a potenza costante. Le ripetizioni vengono programmate
+   * con largo anticipo, così il loop regge anche con i timer rallentati delle schede in background.
+   */
+  private async startAmbient() {
+    if (this.ambientBus) return;
+    const ctx = this.ensure();
+    this.ambientBus = ctx.createGain();
+    this.ambientBus.gain.value = AMBIENT_VOLUME;
+    this.ambientBus.connect(this.out!);
+    const buf = await this.loadSample(AMBIENT_SAMPLE);
+    if (!buf) return;
+    const xf = Math.min(AMBIENT_XFADE, buf.duration / 3);
+    const scheduleOne = (when: number, fadeIn: number) => {
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      const g = ctx.createGain();
+      g.gain.value = 0;
+      g.gain.setValueCurveAtTime(FADE_IN, when, fadeIn);
+      g.gain.setValueCurveAtTime(FADE_OUT, when + buf.duration - xf, xf);
+      src.connect(g).connect(this.ambientBus!);
+      src.start(when);
+      src.stop(when + buf.duration);
+      src.onended = () => g.disconnect();
+      this.ambientNext = when + buf.duration - xf;
+    };
+    const fill = () => {
+      // tieni sempre programmata la ripetizione successiva: ~90 s di margine anche se il browser
+      // rallenta i timer della scheda in background (fino a una volta al minuto)
+      while (this.ambientNext - ctx.currentTime < buf.duration) scheduleOne(this.ambientNext, xf);
+    };
+    scheduleOne(ctx.currentTime + 0.05, 2.5);
+    fill();
+    this.ambientTimer = window.setInterval(fill, 5000);
+  }
+
+  private duckAmbient(on: boolean) {
+    if (!this.ctx || !this.ambientBus) return;
+    const g = this.ambientBus.gain;
+    g.cancelScheduledValues(this.ctx.currentTime);
+    g.setTargetAtTime(on ? AMBIENT_VOLUME * AMBIENT_DUCK : AMBIENT_VOLUME, this.ctx.currentTime, 0.15);
   }
 
   private async loadSample(name: string): Promise<AudioBuffer | null> {
@@ -104,6 +198,7 @@ class AuscultationEngine {
     if (ls) this.playLoop(ls, this.lungBus!, vitals.respRate / SAMPLE_RR);
 
     this.timer = window.setInterval(() => this.schedule(), 50);
+    this.duckAmbient(true);
   }
 
   private playLoop(buf: AudioBuffer, dest: AudioNode, rate: number) {
@@ -125,6 +220,7 @@ class AuscultationEngine {
     });
     this.sampleNodes = [];
     this.setGains(0, 0);
+    this.duckAmbient(false);
   }
 
   setGains(heart: number, lungs: number) {
@@ -283,7 +379,7 @@ class AuscultationEngine {
       const g = ctx.createGain();
       g.gain.setValueAtTime(0.06, t);
       g.gain.setValueAtTime(0, t + 0.1);
-      o.connect(g).connect(ctx.destination);
+      o.connect(g).connect(this.out!);
       o.start(t);
       o.stop(t + 0.12);
     }
@@ -303,12 +399,33 @@ class AuscultationEngine {
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(0.08, t + 0.05);
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
-    o.connect(lp).connect(g).connect(ctx.destination);
+    o.connect(lp).connect(g).connect(this.out!);
     o.start(t);
     o.stop(t + 0.6);
   }
 
+  private barkIndex = 0;
+
+  /** Abbaio registrato, alternando i campioni; se non ancora caricati usa la sintesi. */
   bark() {
+    const ctx = this.ensure();
+    const name = BARK_SAMPLES[this.barkIndex++ % BARK_SAMPLES.length];
+    const buf = this.sampleCache.get(name);
+    if (!buf) {
+      void this.loadSample(name);
+      this.barkSynth();
+      return;
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.playbackRate.value = 0.94 + Math.random() * 0.12;
+    const g = ctx.createGain();
+    g.gain.value = 0.9;
+    src.connect(g).connect(this.out!);
+    src.start();
+  }
+
+  private barkSynth() {
     const ctx = this.ensure();
     const t = ctx.currentTime;
     const o = ctx.createOscillator();
@@ -323,7 +440,7 @@ class AuscultationEngine {
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(0.2, t + 0.01);
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
-    o.connect(bp).connect(g).connect(ctx.destination);
+    o.connect(bp).connect(g).connect(this.out!);
     o.start(t);
     o.stop(t + 0.2);
   }
