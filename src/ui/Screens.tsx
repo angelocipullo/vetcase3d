@@ -8,16 +8,18 @@ import { useGame } from '../store';
 import { audio } from '../audio/engine';
 import { preloadScene } from '../three/preload';
 import { SoundToggle } from './SoundToggle';
+import { SIM_CASES } from '../sim/cases';
 
 const STEPS: [string, string, string][] = [
-  ['🩺', 'Visita', 'Ausculta cuore e polmoni, misura la temperatura'],
-  ['💉', 'Esami', 'Esegui il prelievo e leggi l’emocromo'],
-  ['🧠', 'Diagnosi', 'Indovina la malattia e giustificala con gli esami'],
+  ['🗣️', 'Anamnesi e triage', 'Domande al proprietario e parametri di PS con prove pratiche'],
+  ['🧪', 'Esami e ragionamento', 'Scegli gli esami, interpreta emogas e immagini, rispondi a tempo'],
+  ['💧', 'Terapia e monitoraggio', 'Imposta la pompa, segui il paziente che evolve ora per ora'],
 ];
 
 /** Schermata iniziale: precarica la scena 3D e avvia una visita con paziente e diagnosi casuali. */
 export function TitleScreen() {
   const startRandom = useGame((s) => s.startRandom);
+  const startSim = useGame((s) => s.startSim);
   const { active, loaded, total, errors } = useProgress();
   const [ready, setReady] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -47,7 +49,10 @@ export function TitleScreen() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' || e.key === ' ') start();
+      if (e.key === 'Enter' || e.key === ' ') {
+        audio.unlock();
+        startSim();
+      }
       if (e.key === 'm' || e.key === 'M') useGame.getState().toggleMute();
     };
     window.addEventListener('keydown', onKey);
@@ -64,23 +69,44 @@ export function TitleScreen() {
           VetCase <span>3D</span>
         </h1>
         <p className="title-tagline">
-          Un paziente misterioso ti aspetta in ambulatorio.
+          Sei il medico di turno in Pronto Soccorso.
           <br />
-          Visitalo, raccogli i dati e trova la diagnosi.
+          Raccogli i dati, ragiona, tratta: il paziente evolve con le tue scelte.
         </p>
 
+        <div className="case-picks">
+          {SIM_CASES.map((c, i) => (
+            <button
+              key={c.id}
+              className={`case-pick ${i === 0 ? 'first' : ''}`}
+              onClick={() => {
+                audio.unlock();
+                startSim(c.id);
+              }}
+            >
+              <span className="case-pick-name">
+                {c.patient.name} <small>{c.patient.species}, {c.patient.age}</small>
+              </span>
+              <span className="case-pick-title">{c.title}</span>
+              <span className="case-pick-meta">
+                {'●'.repeat(c.difficulty)}
+                {'○'.repeat(3 - c.difficulty)} {c.difficulty === 1 ? 'facile' : c.difficulty === 2 ? 'medio' : 'difficile'} · {c.generated ? 'caso generato' : 'caso reale'}
+              </span>
+            </button>
+          ))}
+        </div>
         <button
-          className={`start-btn ${ready ? 'ready' : ''}`}
+          className={`start-btn secondary ${ready ? 'ready-2' : ''}`}
           onClick={start}
           disabled={!ready}
           style={{ '--pct': `${pct}%` } as React.CSSProperties}
         >
           <span className="start-fill" aria-hidden />
           <span className="start-label">
-            {starting ? 'Entro in ambulatorio…' : ready ? 'Inizia' : `Preparo l’ambulatorio… ${pct}%`}
+            {starting ? 'Entro in ambulatorio…' : ready ? 'Ambulatorio 3D (prototipo)' : `Preparo l’ambulatorio 3D… ${pct}%`}
           </span>
         </button>
-        <p className="title-hint">{ready ? 'Tutto pronto · su desktop puoi premere Invio' : 'Carico il paziente e la sala visita'}</p>
+        <p className="title-hint">Scegli il paziente · su desktop Invio avvia il primo caso</p>
 
         <ol className="title-steps">
           {STEPS.map(([icon, name, text]) => (

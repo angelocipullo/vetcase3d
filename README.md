@@ -10,7 +10,14 @@ npm run dev      # http://localhost:5173 (anche da telefono in LAN, --host attiv
 npm run build
 ```
 
-## Come si gioca
+## Simulatore clinico (gameplay principale)
+
+**Inizia il turno** avvia il simulatore di Pronto Soccorso su due casi: **Michele** (gatto con FeLV, generato, facile) e **Birillo** (caso reale anonimizzato, gatto con iperaldosteronismo primario, difficile): anamnesi con budget di domande, scheda PS con minigiochi (termometro, polso, respiro, mucose, TRC, stato mentale, PA Doppler), quiz a tempo con distrattori, richiesta esami con costi e tempi, interpretazione dell'emogas, preparazione della pompa di KCl, terapia intensiva con un paziente che evolve ora per ora (ipokaliemia refrattaria), lettura della TC e debriefing.
+
+Codice in `src/sim/` (motore e casi) e `src/ui/sim/` (interfaccia). Architettura, come aggiungere un caso e la strada per generarli: [`docs/simulatore.md`](docs/simulatore.md). Dati reali e generati di Birillo: [`docs/birillo.md`](docs/birillo.md); caso Michele: [`docs/michele.md`](docs/michele.md). I PDF della documentazione clinica originale non sono versionati (`.gitignore`).
+
+## Ambulatorio 3D (prototipo)
+
 
 La schermata iniziale precarica la scena 3D (`src/three/preload.ts`); **Inizia** assegna un caso casuale (diverso dal precedente) e un nome sorteggiato al paziente. Dopo la scheda di accettazione (segnalamento, motivo della visita, anamnesi) visiti il cane e formuli la diagnosi, che resta nascosta fino al risultato. Gli shader vengono compilati in background (`ShaderWarmup` in `Scene.tsx`) mentre leggi la scheda.
 

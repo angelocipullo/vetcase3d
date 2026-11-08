@@ -5,6 +5,7 @@ import { CAMERA_VIEWS } from './three/anatomy';
 import { useGame } from './store';
 import { ExamHUD } from './ui/ExamHUD';
 import { ResultScreen, TitleScreen } from './ui/Screens';
+import { SimScreen } from './ui/sim/SimScreen';
 
 export default function App() {
   const screen = useGame((s) => s.screen);
@@ -32,6 +33,7 @@ export default function App() {
       )}
       {screen === 'title' && <TitleScreen />}
       {screen === 'result' && <ResultScreen />}
+      {screen === 'sim' && <SimScreen />}
     </div>
   );
 }

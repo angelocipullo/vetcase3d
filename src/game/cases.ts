@@ -62,7 +62,7 @@ export const CASES: Record<CaseId, ClinicalCase> = {
     difficulty: 3,
     patient: { name: 'Max', breed: 'Pastore Tedesco', age: '5 anni', weightKg: 34, sex: 'M' },
     anamnesis: [
-      'Vive in giardino in campagna (Caserta)',
+      'Vive in giardino in campagna',
       'Trovate zecche la settimana scorsa',
       'Urine scure, mucose pallide',
       'Debolezza improvvisa',

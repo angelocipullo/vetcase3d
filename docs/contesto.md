@@ -1,0 +1,7 @@
+- L'utente finale è un dottore primario del pronto soccorso
+- L'utente, ovvero il dottore, riceve tutte le informazioni del paziente (per il test case iniziale usiamo un gatto, hai tutto il caso clinico nei PDF originali, non versionati; nel gioco il gatto si chiama Birillo).
+- Dopo aver analizzato l'anamnesi, al dottore (utente) verrà chiesto cosa fare per prima : sistema a scelta multipla stile l'eredità con distrattori. nel caso corretto, il dottore chiederà anamnesi remoto (ambientale, alimentare), successivamente allergie, terapie in corse, poliuria, polidipsia, diarrea, e quando ha mangiato. Se il gato ha abitudini motorie attive, insomma tutte domande che riguardando l'animale. Es. se è un gatto che esce spesso potrebbe essere un parassita.
+- Poi il caso corretto sarebbe che il dottore prenda i parametri di base di pronto soccorso: temperatura, il polso, respiro, le mucose, il tempo di riempimento capillare, lo stato mentale generle insomma tutto cio che vedi nel docjumento SCEHDA DI PRONTO SOCCORSO.
+- Una volta che l'utente ha il quadro completo, in base a quello che è il nostro iniziale sospetto diagnostico dovrà appronfidre mediante esami di laboratorio di base, quali per esempio: Emocromo Citometrico (giusto) , biochimico, emogas. ovviamente dipenderà dalla malattia assegnata all'animale.
+- Nel caso di Birillo si è fatto un ecofast, magari possiamo metterli in una sezione "Esami aggiuntivi", sempre da chiedere all'utente. (ecografia, rx, ecofast, ecg, endoscopia, elettroliti con pompa sodio potassio nel caso di Birillo)
+- 

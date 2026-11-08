@@ -5,6 +5,8 @@ import { ExamRecord, LISTEN_REQUIRED_MS } from './game/evaluation';
 import { CASE_LIST } from './game/cases';
 import { CaseId, Diagnosis, HeartSound, LungSound, Patient, SyringePhase, TechniqueError, Tool } from './game/types';
 import type { CameraView } from './three/anatomy';
+import { SIM_CASES } from './sim/cases';
+import { useSim } from './sim/store';
 
 export interface SyringeState {
   phase: SyringePhase;
@@ -17,7 +19,7 @@ export interface SyringeState {
 }
 
 type Sheet = 'record' | 'diagnosis' | null;
-type Screen = 'title' | 'exam' | 'result';
+type Screen = 'title' | 'exam' | 'result' | 'sim';
 
 interface GameState {
   screen: Screen;
@@ -45,6 +47,8 @@ interface GameState {
 
   /** Nuova partita: diagnosi (caso) e nome del paziente casuali. */
   startRandom: () => void;
+  /** Simulatore clinico a fasi (caso per id, default il primo). */
+  startSim: (caseId?: string) => void;
   /** Rigioca lo stesso caso con lo stesso paziente. */
   startCase: (id: CaseId) => void;
   closeIntro: () => void;
@@ -90,7 +94,7 @@ let toastId = 0;
 /** Nomi sorteggiabili: il sesso resta quello del caso (anamnesi e aggettivi sono declinati). */
 const NAMES: Record<Patient['sex'], string[]> = {
   F: ['Luna', 'Bella', 'Kira', 'Nala', 'Maya', 'Lilly', 'Zoe', 'Penny', 'Molly', 'Stella', 'Gaia', 'Mia'],
-  M: ['Rocky', 'Max', 'Leo', 'Thor', 'Nino', 'Bruno', 'Oscar', 'Rex', 'Charlie', 'Ugo', 'Otto', 'Zeus'],
+  M: ['Rocky', 'Max', 'Leo', 'Thor', 'Nino', 'Bruno', 'Felix', 'Rex', 'Charlie', 'Ugo', 'Otto', 'Zeus'],
 };
 
 const pick = <T,>(list: readonly T[]): T => list[Math.floor(Math.random() * list.length)];
@@ -131,6 +135,11 @@ export const useGame = create<GameState>((set, get) => ({
     const c = pick(CASE_LIST.filter((x) => x.id !== last));
     // caso diverso dal precedente → il Canvas (key=caseId) viene ricreato e va ricompilato
     set({ ...freshVisit(), sceneReady: false, caseId: c.id, patient: { ...c.patient, name: pick(NAMES[c.patient.sex]) } });
+  },
+  startSim: (caseId) => {
+    const c = SIM_CASES.find((x) => x.id === caseId) ?? SIM_CASES[0];
+    useSim.getState().start(c);
+    set({ screen: 'sim', sheet: null, intro: false });
   },
   startCase: (id) => {
     const same = id === get().caseId;
