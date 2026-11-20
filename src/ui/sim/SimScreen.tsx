@@ -4,6 +4,7 @@ import { fmtClock, fmtElapsed, useSim } from '../../sim/store';
 import { Stage } from '../../sim/types';
 import { NURSE } from '../../sim/cast';
 import { ClinicalRecord, PatientBanner, readyCount } from './archive';
+import { ClinicVisit } from '../ClinicVisit';
 import { SoundToggle } from '../SoundToggle';
 import { PixelSprite } from './rpg';
 import { AbgView, InterviewView, NarrativeView, OrdersView, QuizView, VitalsView } from './stagesA';
@@ -106,6 +107,7 @@ export function SimScreen() {
         </main>
       </div>
       {recordOpen && <ClinicalRecord onClose={() => setRecordOpen(false)} />}
+      <ClinicVisit />
       {modal && (
         <div className="s-modal-backdrop">
           <div className={`s-modal rpg-alert ${modal.tone}`} role="alertdialog">

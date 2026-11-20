@@ -1,25 +1,16 @@
+/** Tipi dell'ambulatorio 3D: strumenti, suoni di auscultazione e tecnica delle procedure. */
+
 /** Strumenti disponibili nella toolbar. */
 export enum Tool {
   Hand = 'hand',
   Stethoscope = 'stethoscope',
   Thermometer = 'thermometer',
+  /** Prelievo dalla vena cefalica (tricotomia, laccio, ago, cerotto). */
   Syringe = 'syringe',
-}
-
-/** Zone anatomiche interattive del paziente. */
-export enum Zone {
-  Heart = 'heart',
-  Lungs = 'lungs',
-  Rectal = 'rectal',
-  CephalicVein = 'cephalic_vein',
-}
-
-/** Esami che l'utente può eseguire. Ogni caso ne richiede un sottoinsieme. */
-export enum Exam {
-  HeartAuscultation = 'heart_auscultation',
-  LungAuscultation = 'lung_auscultation',
-  Temperature = 'temperature',
-  BloodSample = 'blood_sample',
+  /** Polso femorale (dita sull'interno coscia). */
+  Pulse = 'pulse',
+  /** Osservazione del torace per la frequenza respiratoria. */
+  Resp = 'resp',
 }
 
 export enum HeartSound {
@@ -37,30 +28,13 @@ export enum LungSound {
   Muffled = 'muffled',
 }
 
-export enum Diagnosis {
-  Parvovirus = 'parvovirus',
-  Gastroenteritis = 'gastroenteritis',
-  Bronchopneumonia = 'bronchopneumonia',
-  KennelCough = 'kennel_cough',
-  MitralValveDisease = 'mitral_valve_disease',
-  Babesiosis = 'babesiosis',
-  Leishmaniasis = 'leishmaniasis',
-  Healthy = 'healthy',
-}
-
-/** Esito finale della valutazione del caso. */
-export enum Outcome {
-  Excellent = 'excellent',
-  Correct = 'correct',
-  CorrectIncomplete = 'correct_incomplete',
-  Wrong = 'wrong',
-}
-
 export enum SyringePhase {
   Prepare = 'prepare',
   Insert = 'insert',
   Aspirate = 'aspirate',
   Finish = 'finish',
+  /** Ago estratto: resta da mettere il cerotto. */
+  Bandage = 'bandage',
   Done = 'done',
 }
 
@@ -71,35 +45,10 @@ export enum TechniqueError {
   NeedleTooFlat = 'needle_too_flat',
   VeinCollapsed = 'vein_collapsed',
   NoDisinfection = 'no_disinfection',
+  NoClipping = 'no_clipping',
   Hematoma = 'hematoma',
   InterruptedReading = 'interrupted_reading',
   NoLubricant = 'no_lubricant',
-}
-
-export enum CaseId {
-  Parvo = 'parvo',
-  Bronchopneumonia = 'bronchopneumonia',
-  Mitral = 'mitral',
-  Babesiosis = 'babesiosis',
-  Healthy = 'healthy',
-}
-
-export enum LabParam {
-  HCT = 'hct',
-  WBC = 'wbc',
-  NEUT = 'neut',
-  PLT = 'plt',
-  TP = 'tp',
-}
-
-export type LabPanel = Record<LabParam, number>;
-
-export interface Patient {
-  name: string;
-  breed: string;
-  age: string;
-  weightKg: number;
-  sex: 'M' | 'F';
 }
 
 export interface Vitals {
@@ -108,25 +57,4 @@ export interface Vitals {
   respRate: number;
   lungSound: LungSound;
   temperature: number;
-}
-
-export interface CoatColors {
-  base: string;
-  belly: string;
-  ears: string;
-}
-
-export interface ClinicalCase {
-  id: CaseId;
-  title: string;
-  difficulty: 1 | 2 | 3;
-  patient: Patient;
-  anamnesis: string[];
-  vitals: Vitals;
-  blood: LabPanel;
-  correctDiagnosis: Diagnosis;
-  /** Esami indispensabili per una diagnosi giustificata. */
-  requiredExams: Exam[];
-  explanation: string;
-  coat: CoatColors;
 }

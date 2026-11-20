@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGame } from '../../store';
 import { VitalTruth } from '../../sim/types';
+import { TechniqueError } from '../../game/types';
 
 export interface GameProps {
   truth: VitalTruth;
   onDone: (value: string, ok: boolean, note?: string) => void;
+  /** Dentro l'ambulatorio 3D: niente disegni 2D, si guarda (e si tocca) il modello del paziente. */
+  embedded?: boolean;
 }
 
 /* ------------------------------------------------------------------ temperatura */
@@ -75,7 +78,7 @@ function scheduleThump(ctx: AudioContext, at: number) {
   }
 }
 
-export function PulseGame({ truth, onDone }: GameProps) {
+export function PulseGame({ truth, onDone, onBeat }: GameProps & { onBeat?: () => void }) {
   const SECONDS = 6;
   const W = 600;
   const H = 90;
@@ -121,6 +124,7 @@ export function PulseGame({ truth, onDone }: GameProps) {
       while (next < times.length && times[next] <= t) {
         next++;
         setBeat((b) => b + 1);
+        onBeat?.();
       }
       if (t < SECONDS) requestAnimationFrame(loop);
       else setPalpating(false);
@@ -181,7 +185,7 @@ export function PulseGame({ truth, onDone }: GameProps) {
 }
 
 /* ------------------------------------------------------------------ respiro */
-export function RespGame({ truth, onDone }: GameProps) {
+export function RespGame({ truth, onDone, embedded }: GameProps) {
   const WINDOW = 15;
   const [running, setRunning] = useState(false);
   const [left, setLeft] = useState(WINDOW);
@@ -210,12 +214,16 @@ export function RespGame({ truth, onDone }: GameProps) {
   const rr = taps * 4;
   return (
     <div className="s-game">
-      <p className="s-muted">Osserva il torace per 15 secondi e tocca “Atto” a ogni inspirazione. Il risultato × 4 = atti/min.</p>
-      <svg className="s-thorax" viewBox="0 0 200 110">
-        <ellipse cx={100} cy={60} rx={70} ry={34} ref={chest} className="chest" />
-        <path d="M40 60 Q100 40 160 60" className="ribs" />
-        <path d="M45 70 Q100 52 155 70" className="ribs" />
-      </svg>
+      <p className="s-muted">
+        {embedded ? 'Guarda il torace del paziente sul tavolo' : 'Osserva il torace'} per 15 secondi e tocca “Atto” a ogni inspirazione. Il risultato × 4 = atti/min.
+      </p>
+      {!embedded && (
+        <svg className="s-thorax" viewBox="0 0 200 110">
+          <ellipse cx={100} cy={60} rx={70} ry={34} ref={chest} className="chest" />
+          <path d="M40 60 Q100 40 160 60" className="ribs" />
+          <path d="M45 70 Q100 52 155 70" className="ribs" />
+        </svg>
+      )}
       <div className="s-row">
         {!running && !finished && <button className="s-btn primary" onClick={() => setRunning(true)}>Avvia (15 s)</button>}
         {running && (
@@ -430,4 +438,21 @@ export function DopplerGame({ sbp, hr, onDone }: { sbp: number; hr: number; onDo
       </button>
     </div>
   );
+}
+
+/* ------------------------------------------------------------------ errori di tecnica del prelievo (diario) */
+const PRELIEVO_ERROR: Record<TechniqueError, string> = {
+  [TechniqueError.MissedVein]: 'Vena mancata',
+  [TechniqueError.TransfixedVein]: 'Vena trapassata (ago troppo inclinato)',
+  [TechniqueError.NeedleTooFlat]: 'Ago troppo parallelo alla cute',
+  [TechniqueError.VeinCollapsed]: 'Vena collassata (aspirazione troppo forte)',
+  [TechniqueError.NoDisinfection]: 'Puntura senza disinfezione',
+  [TechniqueError.NoClipping]: 'Puntura senza tricotomia',
+  [TechniqueError.Hematoma]: 'Ematoma: ago estratto prima di togliere il laccio',
+  [TechniqueError.InterruptedReading]: 'Lettura interrotta',
+  [TechniqueError.NoLubricant]: 'Termometro senza lubrificante',
+};
+
+export function prelievoErrorLabel(e: TechniqueError) {
+  return PRELIEVO_ERROR[e];
 }

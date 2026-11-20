@@ -59,7 +59,7 @@ function humanGrid(s: Extract<SpriteSpec, { kind: 'human' }>, talking: boolean):
     rect(g, 5, 4, 5, 5, 'h');
     rect(g, 12, 4, 12, 5, 'h');
     g[3][7] = g[3][10] = g[4][8] = 'h';
-  } else if (s.hairStyle !== 'bald') {
+  } else if (s.hairStyle !== 'bald' && s.hairStyle !== 'none') {
     rect(g, 5, 2, 12, 3, 'h');
     rect(g, 4, 3, 13, 4, 'h');
     rect(g, 4, 5, 4, 7, 'h');
@@ -70,9 +70,12 @@ function humanGrid(s: Extract<SpriteSpec, { kind: 'human' }>, talking: boolean):
       rect(g, 3, 5, 4, 12, 'h');
       rect(g, 13, 5, 14, 12, 'h');
     }
-  } else {
+  } else if (s.hairStyle === 'bald') {
     rect(g, 4, 6, 4, 8, 'h');
     rect(g, 13, 6, 13, 8, 'h');
+  } else {
+    // nessun capello: la testa è tutta pelle, un po' più tonda in cima
+    rect(g, 6, 3, 11, 3, 's');
   }
   // occhi, occhiali, guance, bocca
   g[7][7] = 'e';

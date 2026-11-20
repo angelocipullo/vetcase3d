@@ -147,6 +147,8 @@ export type Effect =
   | { kind: 'fluids'; fluids: Partial<Fluids> }
   | { kind: 'time'; min: number }
   | { kind: 'flag'; flag: string }
+  /** Terapia eseguita: compare nel diario e nella sezione Terapia della cartella clinica. */
+  | { kind: 'therapy'; text: string }
   | { kind: 'safety'; title: string; body: string; penalty: number };
 
 export interface QuizOption {
@@ -303,8 +305,8 @@ export type SpriteSpec =
       kind: 'human';
       skin: string;
       hair: string;
-      /** 'thin' = capelli radi (stempiato, pochi ciuffi in cima). */
-      hairStyle: 'short' | 'long' | 'bun' | 'bald' | 'thin';
+      /** 'thin' = capelli radi; 'bald' = calvo con capelli ai lati; 'none' = nessun capello. */
+      hairStyle: 'short' | 'long' | 'bun' | 'bald' | 'thin' | 'none';
       clothes: string;
       coat?: boolean;
       /** true = occhiali squadrati blu; 'round' = occhiali tondi neri. */

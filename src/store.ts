@@ -1,15 +1,15 @@
 import { create } from 'zustand';
 import { audio } from './audio/engine';
-import { CASES } from './game/cases';
-import { ExamRecord, LISTEN_REQUIRED_MS } from './game/evaluation';
-import { CASE_LIST } from './game/cases';
-import { CaseId, Diagnosis, HeartSound, LungSound, Patient, SyringePhase, TechniqueError, Tool } from './game/types';
-import type { CameraView } from './three/anatomy';
+import { SyringePhase, TechniqueError, Tool } from './game/types';
+import { setSpecies, type CameraView } from './three/anatomy';
 import { SIM_CASES } from './sim/cases';
 import { useSim } from './sim/store';
+import type { SimPatient, SpriteSpec, VitalId, VitalTruth } from './sim/types';
 
 export interface SyringeState {
   phase: SyringePhase;
+  /** Tricotomia: 0 = pelo intatto, 1 = zona rasata sopra la vena. */
+  clip: number;
   tourniquet: boolean;
   disinfected: boolean;
   angle: number;
@@ -18,70 +18,76 @@ export interface SyringeState {
   insertPoint?: [number, number, number];
 }
 
-type Sheet = 'record' | 'diagnosis' | null;
-type Screen = 'title' | 'exam' | 'result' | 'sim';
+type Screen = 'title' | 'sim';
+
+/**
+ * Visita nell'ambulatorio 3D, aperta da una fase del caso clinico:
+ * - 'vitals': scheda di PS (temperatura, polso, respiro e auscultazione sul modello; il resto in finestra);
+ * - 'prelievo': prelievo dalla vena cefalica prima degli esami del sangue.
+ * I valori "veri" vengono dal caso; i risultati tornano al simulatore con le callback.
+ */
+export interface Visit {
+  mode: 'vitals' | 'prelievo';
+  patient: SimPatient;
+  sprite: SpriteSpec;
+  truth: VitalTruth;
+  /** Parametri della scheda (obbligatori + facoltativi) e quali sono obbligatori. */
+  vitals: VitalId[];
+  required: VitalId[];
+  /** Strumento con cui aprire la visita (es. il parametro cliccato nella scheda). */
+  startTool?: Tool;
+  /** Parametro da cui partire (distingue mucose e TRC, che usano lo stesso strumento). */
+  startFocus?: VitalId;
+  onRecord?: (v: VitalId, value: string, ok: boolean, note?: string) => void;
+  onPrelievo?: (errors: TechniqueError[]) => void;
+}
 
 interface GameState {
   screen: Screen;
-  caseId: CaseId;
-  /** Paziente della partita: segnalamento del caso, nome sorteggiato. */
-  patient: Patient;
-  /** Scheda di accettazione mostrata all'arrivo del paziente. */
-  intro: boolean;
   /** Shader della scena compilati: finché è false il Canvas non disegna (vedi ShaderWarmup). */
   sceneReady: boolean;
   /** Audio disattivato dall'utente (preferenza salvata). */
   muted: boolean;
+  visit: Visit | null;
   tool: Tool;
+  /** Lo strumento è stato appoggiato nel punto anatomico giusto (polso femorale). */
+  placed: boolean;
   stress: number;
   happyUntil: number;
   guided: boolean;
-  exams: ExamRecord;
-  syringe: SyringeState;
   /** Termometro: active = posizionato sotto la coda; lubed = punta lubrificata; inserted = dentro. */
+  syringe: SyringeState;
   thermo: { active: boolean; progress: number; inserted: boolean; lubed: boolean };
-  prompt: 'heart' | 'lungs' | null;
+  /** Contatore dei battiti sentiti sotto le dita (anima le dita sul polso femorale). */
+  pulseBeat: number;
+  /** Errori tecnici della procedura in corso (prelievo, termometro). */
+  errors: TechniqueError[];
   toast: { text: string; id: number } | null;
-  sheet: Sheet;
-  diagnosis?: Diagnosis;
 
-  /** Nuova partita: diagnosi (caso) e nome del paziente casuali. */
-  startRandom: () => void;
   /** Simulatore clinico a fasi (caso per id, default il primo). */
   startSim: (caseId?: string) => void;
-  /** Rigioca lo stesso caso con lo stesso paziente. */
-  startCase: (id: CaseId) => void;
-  closeIntro: () => void;
   setSceneReady: () => void;
   toggleMute: () => void;
   toMenu: () => void;
+  openVisit: (v: Visit) => void;
+  closeVisit: () => void;
   setTool: (t: Tool) => void;
+  setPlaced: (p: boolean) => void;
   setGuided: (g: boolean) => void;
   addStress: (n: number) => void;
   pet: () => void;
   showToast: (text: string) => void;
-  setSheet: (s: Sheet) => void;
-  addListen: (which: 'heart' | 'lungs', ms: number) => void;
-  checkListenPrompt: () => void;
-  answerPrompt: (answer: HeartSound | LungSound) => void;
-  closePrompt: () => void;
-  setTemperature: (t: number) => void;
   addError: (e: TechniqueError) => void;
   patchSyringe: (p: Partial<SyringeState>) => void;
   patchThermo: (p: Partial<GameState['thermo']>) => void;
+  /** Provetta pronta e cerotto messo: chiude la visita e restituisce gli errori al caso. */
   completeBlood: () => void;
-  submitDiagnosis: (d: Diagnosis) => void;
+  beatPulse: () => void;
 }
-
-const freshExams = (): ExamRecord => ({
-  heart: { listenedMs: 0 },
-  lungs: { listenedMs: 0 },
-  blood: { success: false, resultsReady: false },
-  errors: [],
-});
 
 const freshSyringe = (): SyringeState => ({
   phase: SyringePhase.Prepare,
+  clip: 0,
   tourniquet: false,
   disinfected: false,
   angle: 25,
@@ -89,92 +95,67 @@ const freshSyringe = (): SyringeState => ({
   pressure: 0,
 });
 
+const freshThermo = () => ({ active: false, progress: 0, inserted: false, lubed: false });
+
 let toastId = 0;
-
-/** Nomi sorteggiabili: il sesso resta quello del caso (anamnesi e aggettivi sono declinati). */
-const NAMES: Record<Patient['sex'], string[]> = {
-  F: ['Luna', 'Bella', 'Kira', 'Nala', 'Maya', 'Lilly', 'Zoe', 'Penny', 'Molly', 'Stella', 'Gaia', 'Mia'],
-  M: ['Rocky', 'Max', 'Leo', 'Thor', 'Nino', 'Bruno', 'Felix', 'Rex', 'Charlie', 'Ugo', 'Otto', 'Zeus'],
-};
-
-const pick = <T,>(list: readonly T[]): T => list[Math.floor(Math.random() * list.length)];
-
-const freshVisit = () => ({
-  screen: 'exam' as const,
-  intro: true,
-  tool: Tool.Hand,
-  stress: 20,
-  exams: freshExams(),
-  syringe: freshSyringe(),
-  thermo: { active: false, progress: 0, inserted: false, lubed: false },
-  prompt: null,
-  sheet: null,
-  diagnosis: undefined,
-});
 
 export const useGame = create<GameState>((set, get) => ({
   screen: 'title',
-  caseId: CaseId.Parvo,
-  patient: CASES[CaseId.Parvo].patient,
-  intro: false,
   sceneReady: false,
   muted: audio.isMuted(),
+  visit: null,
   tool: Tool.Hand,
+  placed: false,
   stress: 20,
   happyUntil: 0,
-  guided: false,
-  exams: freshExams(),
+  guided: true,
   syringe: freshSyringe(),
-  thermo: { active: false, progress: 0, inserted: false, lubed: false },
-  prompt: null,
+  thermo: freshThermo(),
+  pulseBeat: 0,
+  errors: [],
   toast: null,
-  sheet: null,
 
-  startRandom: () => {
-    const last = get().screen === 'title' ? undefined : get().caseId;
-    const c = pick(CASE_LIST.filter((x) => x.id !== last));
-    // caso diverso dal precedente → il Canvas (key=caseId) viene ricreato e va ricompilato
-    set({ ...freshVisit(), sceneReady: false, caseId: c.id, patient: { ...c.patient, name: pick(NAMES[c.patient.sex]) } });
-  },
   startSim: (caseId) => {
     const c = SIM_CASES.find((x) => x.id === caseId) ?? SIM_CASES[0];
     useSim.getState().start(c);
-    set({ screen: 'sim', sheet: null, intro: false });
+    set({ screen: 'sim', visit: null });
   },
-  startCase: (id) => {
-    const same = id === get().caseId;
-    set({
-      ...freshVisit(),
-      sceneReady: same && get().screen !== 'title' && get().sceneReady,
-      caseId: id,
-      patient: same ? get().patient : CASES[id].patient,
-    });
-  },
-  closeIntro: () => set({ intro: false }),
   setSceneReady: () => set({ sceneReady: true }),
   toggleMute: () => {
     const muted = !get().muted;
     audio.setMuted(muted);
     set({ muted });
   },
-  toMenu: () => set({ screen: 'title', sheet: null, intro: false, sceneReady: false }),
+  toMenu: () => set({ screen: 'title', visit: null }),
+
+  openVisit: (v) => {
+    // punti anatomici e inquadrature della specie, prima che la scena 3D venga montata
+    setSpecies(v.patient.species);
+    set({
+      visit: v,
+      tool: Tool.Hand,
+      placed: false,
+      stress: 20,
+      syringe: freshSyringe(),
+      thermo: freshThermo(),
+      errors: [],
+    });
+    if (v.startTool) get().setTool(v.startTool);
+  },
+  closeVisit: () => {
+    audio.stop();
+    set({ visit: null, tool: Tool.Hand, placed: false });
+  },
 
   setTool: (t) => {
     const s = get();
-    if (t === Tool.Syringe) {
-      if (s.exams.blood.success) {
-        s.showToast('Prelievo già eseguito: guarda la cartella clinica');
-        return;
-      }
-      if (s.stress > 80) {
-        s.showToast(`${s.patient.name} è troppo agitato. Prima qualche coccola!`);
-        return;
-      }
-      set({ tool: t, syringe: freshSyringe(), thermo: { ...s.thermo, active: false } });
+    if (t === Tool.Syringe && s.stress > 80) {
+      s.showToast(`${s.visit?.patient.name ?? 'Il paziente'} è troppo agitato. Prima qualche coccola!`);
       return;
     }
-    set({ tool: t, thermo: { active: false, progress: 0, inserted: false, lubed: false } });
+    set({ tool: t, placed: false, thermo: freshThermo(), syringe: t === Tool.Syringe ? freshSyringe() : s.syringe });
   },
+  setPlaced: (placed) => set({ placed }),
   setGuided: (g) => set({ guided: g }),
   addStress: (n) => set((s) => ({ stress: Math.max(0, Math.min(100, s.stress + n)) })),
   pet: () => {
@@ -182,43 +163,25 @@ export const useGame = create<GameState>((set, get) => ({
     set({ happyUntil: performance.now() + 2500 });
   },
   showToast: (text) => set({ toast: { text, id: ++toastId } }),
-  setSheet: (sheet) => set({ sheet }),
-
-  addListen: (which, ms) =>
-    set((s) => ({
-      exams: { ...s.exams, [which]: { ...s.exams[which], listenedMs: s.exams[which].listenedMs + ms } },
-    })),
-  checkListenPrompt: () => {
-    const { exams, prompt } = get();
-    if (prompt) return;
-    if (!exams.heart.answer && exams.heart.listenedMs >= LISTEN_REQUIRED_MS) set({ prompt: 'heart' });
-    else if (!exams.lungs.answer && exams.lungs.listenedMs >= LISTEN_REQUIRED_MS) set({ prompt: 'lungs' });
-  },
-  answerPrompt: (answer) => {
-    const { prompt, exams } = get();
-    if (prompt === 'heart') set({ exams: { ...exams, heart: { ...exams.heart, answer: answer as HeartSound } } });
-    if (prompt === 'lungs') set({ exams: { ...exams, lungs: { ...exams.lungs, answer: answer as LungSound } } });
-    set({ prompt: null });
-    setTimeout(() => get().checkListenPrompt(), 300);
-  },
-  closePrompt: () => set({ prompt: null }),
-  setTemperature: (t) => set((s) => ({ exams: { ...s.exams, temperature: t } })),
-  addError: (e) => set((s) => ({ exams: { ...s.exams, errors: [...s.exams.errors, e] } })),
+  addError: (e) => set((s) => ({ errors: [...s.errors, e] })),
   patchSyringe: (p) => set((s) => ({ syringe: { ...s.syringe, ...p } })),
   patchThermo: (p) => set((s) => ({ thermo: { ...s.thermo, ...p } })),
   completeBlood: () => {
-    set((s) => ({ exams: { ...s.exams, blood: { success: true, resultsReady: false } } }));
+    const { visit, errors } = get();
+    get().showToast('🧪 Provetta etichettata e inviata al laboratorio');
     setTimeout(() => {
-      set((s) => ({ exams: { ...s.exams, blood: { success: true, resultsReady: true } } }));
-      get().showToast('🧪 Emocromo pronto: aprilo nella cartella clinica');
-    }, 2500);
+      visit?.onPrelievo?.(errors);
+      get().closeVisit();
+    }, 1400);
   },
-  submitDiagnosis: (d) => set({ diagnosis: d, screen: 'result', sheet: null }),
+  beatPulse: () => set((s) => ({ pulseBeat: s.pulseBeat + 1 })),
 }));
 
 /** Vista camera derivata dallo stato. */
-export function cameraViewFor(tool: Tool, thermoActive: boolean, syringePhase: SyringePhase): CameraView {
-  if (tool === Tool.Syringe && syringePhase !== SyringePhase.Done) return 'syringe';
+export function cameraViewFor(tool: Tool, thermoActive: boolean, placed: boolean): CameraView {
+  if (tool === Tool.Syringe) return 'syringe';
   if (tool === Tool.Thermometer && thermoActive) return 'thermometer';
+  if (tool === Tool.Pulse && placed) return 'femoral';
+  if (tool === Tool.Resp) return 'resp';
   return 'default';
 }

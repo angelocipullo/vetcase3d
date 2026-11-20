@@ -4,7 +4,8 @@ import { Phys, ResultRow } from './types';
 export function row(label: string, value: number, unit: string, lo: number | null, hi: number | null, gen = false, decimals?: number): ResultRow {
   const v = decimals === undefined ? value : Number(value.toFixed(decimals));
   const flag = lo !== null && v < lo ? 'L' : hi !== null && v > hi ? 'H' : '';
-  const ref = lo !== null && hi !== null ? `${lo}–${hi}` : lo !== null ? `> ${lo}` : hi !== null ? `< ${hi}` : '';
+  const n = (x: number) => x.toLocaleString('it-IT');
+  const ref = lo !== null && hi !== null ? `${n(lo)}–${n(hi)}` : lo !== null ? `> ${n(lo)}` : hi !== null ? `< ${n(hi)}` : '';
   return { label, value: v, unit, ref, flag, gen };
 }
 

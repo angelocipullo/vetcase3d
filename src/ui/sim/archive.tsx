@@ -13,6 +13,7 @@ import { PixelSprite } from './rpg';
  * ===================================================================== */
 
 const capitalize = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+const kg = (n: number) => `${n.toLocaleString('it-IT')} kg`;
 
 const VITAL_ORDER: VitalId[] = ['temp', 'polso', 'resp', 'mucose', 'trc', 'loc', 'pa'];
 
@@ -58,7 +59,7 @@ export function PatientBanner({ onOpenRecord }: { onOpenRecord: () => void }) {
         <span className="s-banner-id">
           <b>{c.patient.name}</b>
           <small>
-            {c.patient.breed} · {c.patient.sex.toLowerCase()} · {c.patient.age} · {c.patient.kg} kg
+            {c.patient.breed} · {c.patient.sex.toLowerCase()} · {c.patient.age} · {kg(c.patient.kg)}
           </small>
         </span>
         <span className="s-banner-toggle" aria-hidden>{open ? '▴' : '▾'}</span>
@@ -149,7 +150,7 @@ function Frontespizio({ c }: { c: SimCase }) {
         <div><dt>Razza</dt><dd>{c.patient.breed}</dd></div>
         <div><dt>Sesso</dt><dd>{c.patient.sex}</dd></div>
         <div><dt>Età</dt><dd>{c.patient.age}</dd></div>
-        <div><dt>Peso all’ingresso</dt><dd>{c.patient.kg} kg</dd></div>
+        <div><dt>Peso all’ingresso</dt><dd>{kg(c.patient.kg)}</dd></div>
         {c.patient.coat && <div><dt>Mantello</dt><dd>{c.patient.coat}</dd></div>}
         <div>
           <dt>Accettazione</dt>

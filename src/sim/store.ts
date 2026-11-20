@@ -259,6 +259,9 @@ export const useSim = create<SimState>((set, get) => ({
         case 'flag':
           s.setFlag(e.flag);
           break;
+        case 'therapy':
+          s.addLog('terapia', e.text);
+          break;
         case 'safety':
           s.addScore('terapia', -e.penalty, 0, e.title);
           s.addLog('evento', e.title);

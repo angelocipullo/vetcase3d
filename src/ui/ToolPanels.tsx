@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { audio } from '../audio/engine';
-import { CASES } from '../game/cases';
-import { HEART_LABEL, LUNG_LABEL } from '../game/labels';
-import { HeartSound, LungSound, SyringePhase, TechniqueError, Tool } from '../game/types';
+import { SyringePhase, TechniqueError, Tool } from '../game/types';
 import { useGame } from '../store';
 
 function useRaf(cb: (dt: number) => void, active: boolean) {
@@ -22,75 +20,31 @@ function useRaf(cb: (dt: number) => void, active: boolean) {
   }, [active]);
 }
 
-/** Barra che mostra quanto si è ascoltato cuore/polmoni. */
+/** Auscultazione libera: cuore e polmoni del paziente, alla FC e FR del caso. */
 export function StethoscopeHint() {
-  const heart = useGame((s) => Math.min(1, s.exams.heart.listenedMs / 3000));
-  const lungs = useGame((s) => Math.min(1, s.exams.lungs.listenedMs / 3000));
   return (
     <div className="panel compact">
       <p className="panel-title">🩺 Tieni premuto sul torace e trascina</p>
-      <div className="meters">
-        <Meter label="❤️ Cuore" value={heart} color="var(--red)" />
-        <Meter label="🫁 Polmoni" value={lungs} color="var(--blue)" />
-      </div>
-      <p className="hint">Usa le cuffie. Il cuore si sente meglio in basso dietro il gomito.</p>
+      <p className="hint">Usa le cuffie. Il cuore si sente meglio in basso, subito dietro il gomito; i polmoni più in alto e indietro.</p>
     </div>
   );
 }
 
-function Meter({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <div className="meter">
-      <span>{label}</span>
-      <div className="meter-track">
-        <div className="meter-fill" style={{ width: `${value * 100}%`, background: color }} />
-      </div>
-    </div>
-  );
-}
-
-export function ListenPrompt() {
-  const prompt = useGame((s) => s.prompt);
-  const answer = useGame((s) => s.answerPrompt);
-  const close = useGame((s) => s.closePrompt);
-  if (!prompt) return null;
-  const options =
-    prompt === 'heart'
-      ? (Object.keys(HEART_LABEL) as HeartSound[]).map((k) => ({ k, label: HEART_LABEL[k] }))
-      : (Object.keys(LUNG_LABEL) as LungSound[]).map((k) => ({ k, label: LUNG_LABEL[k] }));
-  return (
-    <div className="modal-backdrop">
-      <div className="modal pop">
-        <h3>{prompt === 'heart' ? '❤️ Cosa hai sentito al cuore?' : '🫁 Cosa hai sentito ai polmoni?'}</h3>
-        <div className="choice-grid">
-          {options.map((o) => (
-            <button key={o.k} className="choice" onClick={() => answer(o.k)}>
-              {o.label}
-            </button>
-          ))}
-        </div>
-        <button className="link" onClick={close}>
-          Voglio riascoltare
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/** Secondi di pressione per far avanzare il termometro prima che inizi la misura. */
+/** Secondi per inserire il termometro e per la lettura fino al bip. */
 const INSERT_TIME = 0.6;
 const READ_TIME = 3.5;
 
 export function ThermometerPanel() {
   const thermo = useGame((s) => s.thermo);
-  const caseId = useGame((s) => s.caseId);
-  const done = useGame((s) => s.exams.temperature);
-  const name = useGame((s) => s.patient.name);
+  const target = useGame((s) => s.visit?.truth.temp ?? 38.5);
+  const name = useGame((s) => s.visit?.patient.name ?? 'Il paziente');
   const g = useGame.getState;
-  const target = CASES[caseId].vitals.temperature;
   const [holding, setHolding] = useState(false);
   const [result, setResult] = useState<number | null>(null);
   const insertT = useRef(0);
+  // errori di tecnica di questa misura: finiscono come nota nella scheda di PS
+  const noLube = useRef(false);
+  const interrupted = useRef(false);
 
   useRaf((dt) => {
     const s = g();
@@ -105,7 +59,6 @@ export function ThermometerPanel() {
     if (p >= 1) {
       setHolding(false);
       audio.beep(3);
-      s.setTemperature(target);
       s.addStress(5);
       setResult(target);
     }
@@ -115,7 +68,7 @@ export function ThermometerPanel() {
     return (
       <div className="panel compact">
         <p className="panel-title">🌡️ Tocca sotto la coda per posizionare il termometro</p>
-        {done !== undefined && <p className="hint">Ultima misura: {done.toFixed(1)} °C</p>}
+        <p className="hint">La temperatura si misura per via rettale.</p>
       </div>
     );
   }
@@ -125,6 +78,7 @@ export function ThermometerPanel() {
     audio.unlock();
     const s = g();
     if (!s.thermo.lubed) {
+      noLube.current = true;
       s.addError(TechniqueError.NoLubricant);
       s.addStress(8);
       s.showToast(`Senza lubrificante è fastidioso: ${name} si irrigidisce`);
@@ -137,6 +91,7 @@ export function ThermometerPanel() {
     if (!holding) return;
     setHolding(false);
     if (g().thermo.progress < 1) {
+      interrupted.current = true;
       g().patchThermo({ progress: 0, inserted: false });
       g().addError(TechniqueError.InterruptedReading);
       g().addStress(4);
@@ -144,6 +99,8 @@ export function ThermometerPanel() {
     }
   };
   const extract = () => {
+    const note = noLube.current ? 'Termometro inserito senza lubrificante' : interrupted.current ? 'Lettura interrotta prima del segnale acustico' : undefined;
+    g().visit?.onRecord?.('temp', `${result!.toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} °C`, !noLube.current && !interrupted.current, note);
     g().patchThermo({ active: false, inserted: false, progress: 0, lubed: false });
     g().setTool(Tool.Hand);
   };
@@ -172,21 +129,29 @@ export function ThermometerPanel() {
         </>
       ) : (
         <button className="primary" onClick={extract}>
-          Estrai · {result.toFixed(1)} °C
+          Estrai e registra · {result.toFixed(1)} °C
         </button>
       )}
       <div className="meter-track thin">
         <div className="meter-fill" style={{ width: `${thermo.progress * 100}%`, background: 'var(--orange)' }} />
       </div>
-      {result === null && <p className="hint">Riferimento nel cane: 37,5–39,2 °C</p>}
     </div>
   );
 }
 
+/** Prelievo dalla vena cefalica: tricotomia → laccio → alcol → ago → aspirazione → laccio via PRIMA dell'ago → cerotto (solo pulsante, non disegnato). */
 export function SyringePanel() {
   const s = useGame((st) => st.syringe);
   const g = useGame.getState;
   const [holding, setHolding] = useState(false);
+  const [clipping, setClipping] = useState(false);
+
+  // tricotomia: la macchinetta scende lungo la vena in ~1,8 s
+  useRaf((dt) => {
+    const c = Math.min(1, g().syringe.clip + dt / 1.8);
+    g().patchSyringe({ clip: c });
+    if (c >= 1) setClipping(false);
+  }, clipping);
 
   useRaf((dt) => {
     const st = g().syringe;
@@ -195,9 +160,7 @@ export function SyringePanel() {
     if (holding) {
       fill = Math.min(1, fill + dt * 0.22);
       pressure += dt * 0.75;
-    } else {
-      pressure = Math.max(0, pressure - dt * 0.9);
-    }
+    } else pressure = Math.max(0, pressure - dt * 0.9);
     if (pressure >= 1) {
       setHolding(false);
       g().addError(TechniqueError.VeinCollapsed);
@@ -216,57 +179,44 @@ export function SyringePanel() {
     g().patchSyringe({ fill, pressure });
   }, s.phase === SyringePhase.Aspirate);
 
-  const cancel = () => g().setTool(Tool.Hand);
-
   if (s.phase === SyringePhase.Prepare) {
     return (
       <div className="panel">
         <p className="panel-title">💉 Prelievo dalla vena cefalica</p>
         <div className="steps">
+          <button className={`step ${s.clip >= 1 ? 'ok' : ''}`} disabled={clipping || s.clip >= 1} onClick={() => setClipping(true)}>
+            {s.clip >= 1 ? '✓ Tricotomia' : clipping ? 'Rasatura…' : '1 Tricotomia'}
+          </button>
           <button className={`step ${s.tourniquet ? 'ok' : ''}`} onClick={() => g().patchSyringe({ tourniquet: true })}>
-            {s.tourniquet ? '✓' : '1'} Applica laccio emostatico
+            {s.tourniquet ? '✓' : '2'} Applica laccio emostatico
           </button>
           <button className={`step ${s.disinfected ? 'ok' : ''}`} onClick={() => g().patchSyringe({ disinfected: true })}>
-            {s.disinfected ? '✓' : '2'} Disinfetta con alcol
+            {s.disinfected ? '✓' : '3'} Disinfetta con alcol
           </button>
         </div>
-        <div className="row">
-          <button className="ghost" onClick={cancel}>Annulla</button>
-          <button className="primary" onClick={() => g().patchSyringe({ phase: SyringePhase.Insert })}>
-            Prepara l’ago →
-          </button>
-        </div>
+        <button className="primary" disabled={clipping} onClick={() => g().patchSyringe({ phase: SyringePhase.Insert })}>
+          Prepara l’ago →
+        </button>
       </div>
     );
   }
 
   if (s.phase === SyringePhase.Insert) {
-    const angleOk = s.angle >= 15 && s.angle <= 30;
+    const ok = s.angle >= 15 && s.angle <= 30;
     return (
       <div className="panel">
-        <p className="panel-title">Inclina l’ago, poi tocca la vena</p>
+        <p className="panel-title">Inclina l’ago, poi tocca la vena blu</p>
         <label className="slider">
           <span>
-            Angolo ago: <b className={angleOk ? 'good' : 'warn'}>{s.angle}°</b>
+            Angolo ago: <b className={ok ? 'good' : 'warn'}>{s.angle}°</b>
           </span>
-          <input
-            type="range"
-            min={5}
-            max={60}
-            value={s.angle}
-            onChange={(e) => g().patchSyringe({ angle: Number(e.target.value) })}
-          />
-          <AngleGauge angle={s.angle} />
+          <input type="range" min={5} max={60} value={s.angle} onChange={(e) => g().patchSyringe({ angle: Number(e.target.value) })} />
         </label>
-        {!s.tourniquet && <p className="hint warn">Senza laccio la vena è poco visibile e sottile.</p>}
-        <div className="row">
-          <button className="ghost" onClick={cancel}>Annulla</button>
-          {!s.tourniquet && (
-            <button className="ghost" onClick={() => g().patchSyringe({ tourniquet: true })}>
-              Metti il laccio
-            </button>
-          )}
-        </div>
+        {!s.tourniquet && (
+          <button className="ghost" onClick={() => g().patchSyringe({ tourniquet: true })}>
+            Metti il laccio
+          </button>
+        )}
       </div>
     );
   }
@@ -288,56 +238,61 @@ export function SyringePanel() {
         >
           {holding ? 'Aspirando…' : 'Tieni premuto per tirare lo stantuffo'}
         </button>
-        <p className="hint">Rilascia quando la pressione sale, poi riprendi.</p>
       </div>
     );
   }
 
   if (s.phase === SyringePhase.Finish) {
-    const finish = (needleFirst: boolean) => {
-      if (needleFirst && s.tourniquet) {
+    const extract = () => {
+      if (s.tourniquet) {
         g().addError(TechniqueError.Hematoma);
         g().showToast('Ematoma! Il laccio va tolto PRIMA di estrarre l’ago');
         g().addStress(6);
       }
-      g().patchSyringe({ phase: SyringePhase.Done, tourniquet: false, insertPoint: undefined });
-      g().completeBlood();
-      setTimeout(() => g().setTool(Tool.Hand), 600);
+      g().patchSyringe({ phase: SyringePhase.Bandage, tourniquet: false, insertPoint: undefined });
     };
     return (
       <div className="panel">
         <p className="panel-title">Concludi il prelievo</p>
         <div className="steps">
           {s.tourniquet ? (
-            <button className="step" onClick={() => g().patchSyringe({ tourniquet: false })}>
-              Rimuovi il laccio
-            </button>
+            <button className="step" onClick={() => g().patchSyringe({ tourniquet: false })}>Rimuovi il laccio</button>
           ) : (
             <span className="step ok">✓ Laccio rimosso</span>
           )}
-          <button className="step" onClick={() => finish(true)}>
-            Estrai l’ago e comprimi
-          </button>
+          <button className="step" onClick={extract}>Estrai l’ago e comprimi</button>
         </div>
+      </div>
+    );
+  }
+
+  if (s.phase === SyringePhase.Bandage) {
+    return (
+      <div className="panel">
+        <p className="panel-title">🩹 Ago estratto: metti il cerotto e manda il campione</p>
+        <button
+          className="primary"
+          onClick={() => {
+            // cerotto sul punto di prelievo (solo come passaggio, non disegnato) e invio della provetta
+            g().patchSyringe({ phase: SyringePhase.Done });
+            g().completeBlood();
+          }}
+        >
+          Metti il cerotto e invia la provetta
+        </button>
       </div>
     );
   }
   return null;
 }
 
-function AngleGauge({ angle }: { angle: number }) {
-  const a = (angle * Math.PI) / 180;
-  const x = 10 + Math.cos(a) * 70;
-  const y = 50 - Math.sin(a) * 70;
-  const zone = (deg: number) => [10 + Math.cos((deg * Math.PI) / 180) * 70, 50 - Math.sin((deg * Math.PI) / 180) * 70];
-  const [x1, y1] = zone(15);
-  const [x2, y2] = zone(30);
+function Meter({ label, value, color }: { label: string; value: number; color: string }) {
   return (
-    <svg viewBox="0 0 90 55" className="gauge" aria-hidden>
-      <path d={`M10 50 L${x1} ${y1} A70 70 0 0 0 ${x2} ${y2} Z`} fill="var(--green-soft)" />
-      <line x1="0" y1="50" x2="90" y2="50" stroke="var(--ink-soft)" strokeWidth="3" strokeLinecap="round" />
-      <line x1="10" y1="50" x2={x} y2={y} stroke="var(--ink)" strokeWidth="3" strokeLinecap="round" />
-      <circle cx={x} cy={y} r="3" fill="var(--blue)" />
-    </svg>
+    <div className="meter">
+      <span>{label}</span>
+      <div className="meter-track">
+        <div className="meter-fill" style={{ width: `${value * 100}%`, background: color }} />
+      </div>
+    </div>
   );
 }

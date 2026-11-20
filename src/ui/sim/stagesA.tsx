@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { EXAMS, VITAL_LABEL } from '../../sim/exams';
 import { dyn, useSim, useSimCtx } from '../../sim/store';
+import { useGame } from '../../store';
+import { toolForVital } from '../clinicTools';
+import { TechniqueError, Tool } from '../../game/types';
 import {
   AbgStage,
   DialogueLine,
@@ -20,7 +23,7 @@ import { MENTOR, speaker } from '../../sim/cast';
 import { Continue, ResultView, stableShuffle, StageHeader } from './common';
 import { Actor, DialogueBox, RpgMenu, RpgScene, SpeechBubble, voiceFor } from './rpg';
 import { EcoFastGame, FundusGame } from './imagingGames';
-import { DopplerGame, LocGame, MucousGame, PulseGame, RespGame, ThermoGame, TrcGame } from './vitalGames';
+import { DopplerGame, LocGame, MucousGame, prelievoErrorLabel, PulseGame, RespGame, ThermoGame, TrcGame } from './vitalGames';
 
 /* ================================================================ narrativa */
 function linesFor(stage: NarrativeStage, ctx: ReturnType<typeof useSimCtx>): DialogueLine[] {
@@ -277,7 +280,7 @@ export function InterviewView({ stage }: { stage: InterviewStage }) {
 /* ================================================================ scheda PS */
 
 /** Minigioco a tutto schermo (portal nel contenitore .sim per ereditarne il tema). Esc chiude. */
-function GameModal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+export function GameModal({ title, onClose, children, className = '' }: { title: string; onClose: () => void; children: React.ReactNode; className?: string }) {
   useEffect(() => {
     const key = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', key);
@@ -286,7 +289,7 @@ function GameModal({ title, onClose, children }: { title: string; onClose: () =>
   const host = document.querySelector('.sim');
   if (!host) return null;
   return createPortal(
-    <div className="s-game-modal" role="dialog" aria-modal="true" aria-label={title}>
+    <div className={`s-game-modal ${className}`} role="dialog" aria-modal="true" aria-label={title}>
       <div className="s-game-modal-head">
         <b>{title}</b>
         <button className="s-x" onClick={onClose} aria-label="Chiudi">✕</button>
@@ -326,6 +329,20 @@ export function VitalsView({ stage }: { stage: VitalsStage }) {
   };
 
   const truth = { ...c.vitals, sbp: phys.sbp };
+  // temperatura, polso e respiro si prendono sul modello 3D del paziente; gli altri in una finestra
+  const in3D = (v: VitalId) => !!toolForVital(v);
+  const open3D = (v?: VitalId) =>
+    useGame.getState().openVisit({
+      mode: 'vitals',
+      patient: c.patient,
+      sprite: c.cast.patient,
+      truth,
+      vitals: all,
+      required: stage.required,
+      startTool: v ? toolForVital(v) : undefined,
+      startFocus: v,
+      onRecord: (vid, value, ok, note) => record(vid)(value, ok, note),
+    });
   const game = (v: VitalId) => {
     const done = record(v);
     switch (v) {
@@ -351,12 +368,17 @@ export function VitalsView({ stage }: { stage: VitalsStage }) {
       <StageHeader eyebrow={stage.phase} title={stage.title}>
         <SpeechBubble speaker={MENTOR} text={stage.intro} />
       </StageHeader>
+      {!closed && (
+        <button className="s-btn primary s-enter3d" onClick={() => open3D()}>
+          🏥 Visita {c.patient.name} in ambulatorio (3D)
+        </button>
+      )}
       <div className="s-vitals">
         {all.map((v) => {
           const f = findings[v];
           const req = stage.required.includes(v);
           return (
-            <button key={v} className={`s-vital ${f ? 'done' : ''} ${open === v ? 'open' : ''}`} disabled={closed} onClick={() => setOpen(open === v ? null : v)}>
+            <button key={v} className={`s-vital ${f ? 'done' : ''} ${open === v ? 'open' : ''}`} disabled={closed} onClick={() => (in3D(v) ? open3D(v) : setOpen(open === v ? null : v))}>
               <span className="ic">{VITAL_LABEL[v].icon}</span>
               <span className="lb">
                 {VITAL_LABEL[v].label}
@@ -393,7 +415,9 @@ export function VitalsView({ stage }: { stage: VitalsStage }) {
                   </li>
                 ))}
             </ul>
-            {!findings.pa && <p className="s-muted">Non hai misurato la pressione: con un deficit visivo è un dato prezioso.</p>}
+            {!findings.pa && stage.optional.includes('pa') && (
+              <p className="s-muted">Non hai misurato la pressione arteriosa: è facoltativa, ma completa la valutazione emodinamica.</p>
+            )}
           </div>
           <Continue onClick={next} />
         </>
@@ -405,8 +429,12 @@ export function VitalsView({ stage }: { stage: VitalsStage }) {
 /* ================================================================ richiesta esami */
 type PendingGame = { exam: ExamId; kind: 'ecofast' | 'doppler' | 'fondo' };
 
+/** Esami che richiedono un prelievo di sangue (fatto nell'ambulatorio 3D). */
+const BLOOD_EXAMS: ExamId[] = ['emocromo', 'biochimico', 'emogas', 'coagulazione', 'lattati', 't4', 'fivfelv', 'aldosterone', 'gruppo', 'pcr', 'coombs'];
+
 export function OrdersView({ stage }: { stage: OrdersStage }) {
   const ctx = useSimCtx();
+  const c = useSim((s) => s.caseDef)!;
   const results = useSim((s) => s.results);
   const clock = useSim((s) => s.clock);
   const phys = useSim((s) => s.phys);
@@ -420,10 +448,32 @@ export function OrdersView({ stage }: { stage: OrdersStage }) {
   const total = cart.reduce((a, e) => a + EXAMS[e].cost, 0);
   const toggle = (e: ExamId) => setCart((c) => (c.includes(e) ? c.filter((x) => x !== e) : [...c, e]));
 
-  const send = () => {
+  const proceed = () => {
     const g = cart.filter((e) => EXAMS[e].minigame).map((e) => ({ exam: e, kind: EXAMS[e].minigame! }));
     if (g.length) setGames(g);
     else dispatch();
+  };
+  const send = () => {
+    // esami del sangue: prima il prelievo dalla vena cefalica, sul modello 3D del paziente
+    const blood = cart.filter((e) => BLOOD_EXAMS.includes(e));
+    if (!blood.length) return proceed();
+    useGame.getState().openVisit({
+      mode: 'prelievo',
+      patient: c.patient,
+      sprite: c.cast.patient,
+      truth: { ...c.vitals, sbp: phys.sbp },
+      vitals: [],
+      required: [],
+      startTool: Tool.Syringe,
+      onPrelievo: (errors) => prelievoDone(errors, blood),
+    });
+  };
+  const prelievoDone = (errors: TechniqueError[], blood: ExamId[]) => {
+    const st = useSim.getState();
+    st.advance(8);
+    st.addLog('azione', `Prelievo dalla vena cefalica per: ${blood.map((e) => EXAMS[e].short).join(', ')}${errors.length ? ` (errori: ${errors.map(prelievoErrorLabel).join('; ')})` : ''}`);
+    if (errors.length) st.addScore('clinica', -Math.min(6, errors.length * 2), 0, `Prelievo: ${errors.length} errori di tecnica`);
+    proceed();
   };
 
   const dispatch = () => {

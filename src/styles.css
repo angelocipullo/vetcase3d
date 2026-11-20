@@ -408,3 +408,24 @@ h1, h2, h3, h4, .brand, .lcd, .score { font-family: 'Baloo 2', 'Nunito', sans-se
 .start-btn.secondary.ready-2:hover { background: rgba(255, 255, 255, 0.14); }
 
 /* scelta del caso del simulatore */
+
+/* ---------- ambulatorio 3D aperto da una fase del caso (scheda di PS, prelievo) ---------- */
+.clinic-visit { position: fixed; inset: 0; z-index: 35; background: #e9ecec; color: var(--ink); font-family: 'Nunito', system-ui, sans-serif; animation: pop 0.25s ease-out; }
+.clinic-loading { position: absolute; inset: 0; display: grid; place-items: center; background: #0b1f26; color: #d3f9ee; font-family: 'Baloo 2', sans-serif; font-size: 22px; font-weight: 800; z-index: 2; }
+.clinic-face { width: 40px; height: 40px; flex-shrink: 0; display: grid; place-items: center; border-radius: 10px; background: #2c5662; box-shadow: inset 0 0 0 2px #1d1b2c; }
+.clinic-hud .toolbar { grid-template-columns: repeat(5, 1fr); max-height: 46vh; overflow-y: auto; }
+.clinic-hud .tool { position: relative; }
+.clinic-hud .tool.done .ti { opacity: 0.55; }
+.clinic-hud .tool-ok { position: absolute; top: 4px; right: 6px; font-style: normal; font-size: 12px; font-weight: 900; color: #fff; background: #2b8a3e; border-radius: 999px; width: 17px; height: 17px; display: grid; place-items: center; }
+.clinic-hud .tool-win { position: absolute; bottom: 3px; right: 6px; font-style: normal; font-size: 12px; font-weight: 900; color: var(--ink-soft); }
+.clinic-hud .pill.clinic-done { background: #2b8a3e; color: #fff; }
+/* i minigiochi della scheda PS (stile del simulatore, scuro) dentro il pannello dell'ambulatorio */
+.panel.clinic-game { background: #0b1f26; color: #e6f2ef; max-height: 52vh; overflow-y: auto; }
+.panel.clinic-game .s-game { gap: 10px; }
+.clinic-tabs { margin-bottom: 4px; }
+@media (min-width: 900px) and (min-height: 540px) {
+  .clinic-hud .toolbar { grid-template-columns: 1fr; max-height: calc(100vh - 2 * var(--gap) - 80px); top: calc(50% + 30px); }
+  .clinic-hud .tool { padding: 9px 4px 8px; }
+  .clinic-hud .tool .ti { font-size: 22px; }
+  .panel.clinic-game { max-height: none; }
+}

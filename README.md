@@ -16,31 +16,25 @@ La schermata iniziale mostra un piccolo ospedale in pixel art: **Iniziamo il tur
 
 Codice in `src/sim/` (motore e casi) e `src/ui/sim/` (interfaccia). Architettura, come aggiungere un caso e la strada per generarli: [`docs/simulatore.md`](docs/simulatore.md). Dati reali e generati di Birillo: [`docs/birillo.md`](docs/birillo.md); caso Michele: [`docs/michele.md`](docs/michele.md); caso Nala: [`docs/nala.md`](docs/nala.md). I PDF della documentazione clinica originale non sono versionati (`.gitignore`).
 
-## Ambulatorio 3D (prototipo)
+## Ambulatorio 3D (dentro i casi)
 
+L'ambulatorio 3D si apre dalla scheda di PS del caso, con il paziente del caso sul tavolo, e restituisce i valori alla scheda. Non ci sono più casi casuali. Codice: `src/ui/ClinicVisit.tsx` (visita e pannelli), `src/three/Scene.tsx`, `Instruments.tsx`, `Dog.tsx`, `Cat.tsx`; stato in `src/store.ts` (`openVisit`); quali parametri sono 3D in `src/ui/clinicTools.ts`.
 
-La schermata iniziale precarica la scena 3D (`src/three/preload.ts`); il pulsante **Ambulatorio 3D (prototipo)** nella sala d'attesa assegna un caso casuale (diverso dal precedente) e un nome sorteggiato al paziente. Dopo la scheda di accettazione (segnalamento, motivo della visita, anamnesi) visiti il cane e formuli la diagnosi, che resta nascosta fino al risultato. Gli shader vengono compilati in background (`ShaderWarmup` in `Scene.tsx`) mentre leggi la scheda.
+- **Sul modello 3D**: temperatura, polso, respiro, auscultazione.
+- **In finestra** (dalla scheda o dalla barra dell'ambulatorio, segnati con ⧉): mucose, TRC, stato mentale, pressione Doppler.
+- **Prelievo**: inviando esami del sangue si apre la finestra del prelievo (tricotomia → laccio → disinfezione → angolo dell'ago → puntura sulla vena → aspirazione a impulsi → laccio tolto PRIMA dell'ago → cerotto). Gli errori di tecnica vanno nel diario e tolgono punti all'esame clinico.
+- I referti si leggono nella cartella clinica 🗂️, apribile anche dall'ambulatorio.
+- Modelli: **cane** = pitbull glTF (`Dog.tsx`); **gatto** = gatto semi-realistico costruito in codice (`Cat.tsx`, nessun file esterno: tronco scolpito, mantello tigrato su texture generata) con i colori del caso. Punti anatomici e inquadrature per specie in `src/three/anatomy.ts` (`setSpecies`).
 
-Su desktop: `1–4` strumenti, `D` diagnosi, `C` cartella, `G` guida, `Esc` chiude.
-
-| Strumento | Interazione | Dato raccolto |
+| Strumento 3D | Interazione sul modello | Dato |
 |---|---|---|
-| ✋ Coccole | tocca il cane, trascina per ruotare | abbassa lo stress |
-| 🩺 Fonendo | tieni premuto sul torace e trascina; il volume dipende dalla distanza dal focus cardiaco/polmonare. Dopo 3 s di ascolto scegli cosa hai sentito | `HeartSound`, `LungSound` (interpretazione dell'utente) |
-| 🌡️ Termometro | tocca sotto la coda (il cane la solleva) → lubrifica la punta → tieni premuto: il termometro entra e il display sale fino al bip → estrai. Senza lubrificante o staccando prima del bip è un errore di tecnica | temperatura |
-| 💉 Siringa | zoom sulla vena cefalica → laccio → disinfezione → angolo 15–30° → tocca la vena → aspira a impulsi (la pressione non deve saturare) → togli il laccio PRIMA dell'ago | emocromo (HCT, WBC, NEUT, PLT, PT) |
+| ✋ Coccole | tocca l'animale, trascina per girare attorno al tavolo | abbassa lo stress |
+| 🌡️ Temperatura | tocca sotto la coda → lubrifica → tieni premuto fino al bip → estrai | °C (errore se senza lubrificante o interrotto) |
+| 💗 Polso femorale | tocca l'interno coscia: le dita pulsano a ogni battito; conta per 6 s e classifica | bpm |
+| 🫁 Respiro | inquadratura del torace, che si espande alla FR del caso; tocca "Atto" per 15 s | atti/min |
+| 🩺 Auscultazione | tieni premuto sul torace (suoni alla FC/FR del caso) | — |
 
-Lo **stress** del cane sale con gli errori; sopra 80 non puoi pungere finché non lo calmi.
-
-## Modello dati (`src/game/`)
-
-- `types.ts` — tutti gli enum: `Tool`, `Zone`, `Exam`, `HeartSound`, `LungSound`, `Diagnosis`, `Outcome`, `TechniqueError`, `CaseId`, `LabParam`, `SyringePhase`.
-- `cases.ts` — 5 casi: parvovirosi, broncopolmonite, endocardiosi mitralica, babesiosi, paziente sano. Ognuno ha `vitals`, `blood`, `correctDiagnosis`, `requiredExams`, `explanation`.
-- `evaluation.ts` — `evaluate(case, record, diagnosis)` → `Outcome` + punteggio:
-  - Diagnosi 50 · Esami richiesti 25 · Interpretazione auscultazione 15 · Tecnica 10 (−3 per errore)
-  - `Wrong` se la diagnosi è sbagliata; `CorrectIncomplete` se giusta ma mancano esami richiesti; `Excellent` ≥ 88.
-
-Per aggiungere un caso: aggiungi un valore a `CaseId` e una voce in `CASES`.
+`G` attiva/disattiva la guida (punti che lampeggiano), `Esc` torna alla scheda.
 
 ## Audio
 

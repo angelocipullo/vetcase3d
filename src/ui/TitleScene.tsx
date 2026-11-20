@@ -59,10 +59,10 @@ function sceneryPixels(doorOpen: boolean): Px[] {
   return p;
 }
 
-/** Medico visto di spalle (7×10), due fotogrammi di camminata: stempiato, capelli biondo miele. */
+/** Medico visto di spalle (7×10), due fotogrammi di camminata: calvo, camice bianco. */
 const WALK_FRAMES: string[][] = [
-  ['..sss..', '.hsssh.', '.hhhhh.', '..sss..', 'WWWWWWW', 'wWWWWWw', 'sWWWWWs', '.WWWWW.', '.pp.pp.', '.bb....'],
-  ['..sss..', '.hsssh.', '.hhhhh.', '..sss..', 'WWWWWWW', 'wWWWWWw', 'sWWWWWs', '.WWWWW.', '.pp.pp.', '....bb.'],
+  ['..sss..', '.sssss.', '.sssss.', '..sss..', 'WWWWWWW', 'wWWWWWw', 'sWWWWWs', '.WWWWW.', '.pp.pp.', '.bb....'],
+  ['..sss..', '.sssss.', '.sssss.', '..sss..', 'WWWWWWW', 'wWWWWWw', 'sWWWWWs', '.WWWWW.', '.pp.pp.', '....bb.'],
 ];
 const PLAYER_PAL: Record<string, string> = { h: '#c49a4a', s: '#f3d2b3', W: '#f8f9fa', w: '#ced4da', p: '#343a40', b: K };
 

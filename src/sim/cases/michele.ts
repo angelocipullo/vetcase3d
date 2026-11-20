@@ -192,7 +192,10 @@ export const MICHELE: SimCase = {
         { id: 'c', text: 'Desametasone per prevenire reazioni', score: 0, feedback: 'Non previene le reazioni emolitiche e immunodeprime un gatto già FeLV positivo.' },
         { id: 'd', text: 'Integrare ferro per bocca e aspettare', score: 0, feedback: 'Non c’è carenza di ferro e il midollo non risponde: Michele ha bisogno di ossigeno adesso.' },
       ],
-      after: [{ kind: 'flag', flag: 'transfused' }],
+      after: [
+        { kind: 'flag', flag: 'transfused' },
+        { kind: 'therapy', text: 'Trasfusione di sangue intero, gruppo A compatibile al crossmatch, 10 ml/kg' },
+      ],
       explanation: 'Michele è di gruppo A (dato simulato): riceve 10 ml/kg di sangue intero A compatibile al crossmatch. Dopo la trasfusione l’HCT sale al 19% e la tachipnea si risolve.',
     },
     {
