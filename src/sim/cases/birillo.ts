@@ -64,7 +64,7 @@ export const BIRILLO: SimCase = {
       title: 'Arrivo in Pronto Soccorso',
       body:
         'Martedì 16 giugno, ore 15:50. La proprietaria entra di corsa con un trasportino. Dentro c’è Birillo, gatto comune europeo tigrato, maschio castrato di 7 anni, circa 5 kg.\n\n«Da ieri ha vomitato tre volte, poi ha cominciato a camminare male… e credo che non ci veda bene. Guardi questi video.»\n\nNei video Birillo tiene il collo piegato con il mento verso il petto (ventroflessione) e barcolla.',
-      bullets: ['Sei il medico di turno in PS.', 'Ogni scelta consuma tempo simulato: il paziente evolve.', 'Domande a tempo: rispondere presto e bene vale di più.'],
+      bullets: ['Sei il medico di turno in PS.', 'Ogni scelta consuma tempo simulato: il paziente evolve.'],
       cta: 'Prendi in carico Birillo',
     },
     {
@@ -73,7 +73,6 @@ export const BIRILLO: SimCase = {
       phase: 'Triage',
       title: 'Prima mossa',
       question: 'Birillo è appena arrivato. Cosa fai per prima cosa?',
-      timer: 25,
       points: 10,
       options: [
         { id: 'a', text: 'Valuto rapidamente A-B-C e raccolgo un’anamnesi mirata dalla proprietaria', score: 1, feedback: 'Vie aeree pervie, respira, mucose rosee: nessuna manovra salvavita immediata. Un’anamnesi mirata orienta tutto il resto.' },
@@ -126,7 +125,6 @@ export const BIRILLO: SimCase = {
       title: 'Primo sospetto',
       context: 'Vomito, debolezza, ventroflessione del collo, ottundimento. Gatto di casa, dieta commerciale, nessun tossico.',
       question: 'Nel gatto la ventroflessione del collo è un segno tipico di…',
-      timer: 20,
       points: 10,
       options: [
         { id: 'a', text: 'Miopatia ipokaliemica', score: 1, feedback: 'Esatto: il gatto non ha il legamento nucale, quindi la debolezza dei muscoli del collo da ipokaliemia si vede come ventroflessione.' },
@@ -143,7 +141,6 @@ export const BIRILLO: SimCase = {
       title: '“Non ci vede bene”',
       context: 'Pupille dilatate, urta i mobili, ottundimento. Gatto adulto.',
       question: 'Quale condizione sistemica devi sospettare e misurare subito?',
-      timer: 20,
       points: 10,
       options: [
         { id: 'a', text: 'Ipertensione arteriosa sistemica (retinopatia/encefalopatia ipertensiva)', score: 1, feedback: 'Corretto: nel gatto l’ipertensione causa distacco ed emorragie retiniche con cecità acuta e midriasi. Misura la pressione e guarda il fondo dell’occhio.' },
@@ -197,7 +194,6 @@ export const BIRILLO: SimCase = {
       title: 'Priorità terapeutica',
       context: (ctx) => `K⁺ ${kText(ctx)}, alcalosi metabolica, vomito.`,
       question: 'Qual è la priorità terapeutica adesso?',
-      timer: 20,
       points: 10,
       options: [
         { id: 'a', text: 'Fluidoterapia con KCl in infusione controllata + maropitant', score: 1, feedback: 'Corretto: si corregge il potassio con un’infusione a velocità sicura e si ferma il vomito, che fa perdere altro potassio.' },
@@ -219,7 +215,6 @@ export const BIRILLO: SimCase = {
       context: (ctx) => `Ultimo K⁺ misurato: ${kText(ctx)}.`,
       question: 'Quanti mEq di KCl aggiungi per ogni litro di fluido?',
       ordered: true,
-      timer: 25,
       points: 10,
       options: (ctx) => {
         const target = kScale(kMeasured(ctx) ?? 1.9).meqL;
@@ -266,7 +261,6 @@ export const BIRILLO: SimCase = {
       context: (ctx) =>
         `Mattina del giorno 2. Ultimo K⁺: ${kText(ctx)} nonostante l’integrazione. Birillo ha ancora la ventroflessione del collo.`,
       question: 'Perché il potassio non si normalizza?',
-      timer: 25,
       points: 15,
       options: [
         { id: 'a', text: 'Perdita renale inappropriata di K⁺: va quantificata e cercata la causa', score: 1, feedback: 'Esatto. Con il vomito fermo e un’integrazione adeguata, un K⁺ che non sale indica che il rene lo perde: serve la frazione di escrezione e lo studio delle cause (mineralcorticoidi, rene).' },
@@ -319,7 +313,6 @@ export const BIRILLO: SimCase = {
         return parts.join(' · ');
       },
       question: 'Qual è il sospetto diagnostico principale?',
-      timer: 25,
       points: 20,
       options: [
         { id: 'a', text: 'Iperaldosteronismo primario (sindrome di Conn)', score: 1, feedback: 'Esatto. Un adenoma o carcinoma surrenalico produce aldosterone in modo autonomo: il rene perde K⁺ e trattiene Na⁺, con ipertensione e alcalosi metabolica.' },
@@ -337,7 +330,6 @@ export const BIRILLO: SimCase = {
       title: 'Piano terapeutico',
       question: 'Imposta la terapia in attesa di decidere sulla chirurgia (seleziona tutte le scelte corrette).',
       multi: true,
-      timer: 40,
       points: 20,
       options: [
         { id: 'spiro', text: 'Spironolattone 2 mg/kg BID', score: 1, feedback: 'Antagonista dell’aldosterone: riduce la perdita renale di K⁺ (caso reale).', effects: [{ kind: 'drug', drug: 'spironolattone' }] },
@@ -371,7 +363,6 @@ export const BIRILLO: SimCase = {
       title: 'Pianificazione chirurgica',
       context: 'Paziente stabilizzato. I proprietari accettano di valutare la surrenalectomia sinistra.',
       question: 'Quale esame chiedi per pianificare l’intervento?',
-      timer: 25,
       points: 10,
       options: [
         { id: 'a', text: 'TC total body con mezzo di contrasto', score: 1, feedback: 'Corretto (eseguita nel caso reale): valuta dimensioni, invasione della vena cava caudale, metastasi, surrene controlaterale e ipofisi.' },

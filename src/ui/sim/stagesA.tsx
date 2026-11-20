@@ -17,8 +17,8 @@ import {
   VitalsStage,
 } from '../../sim/types';
 import { MENTOR, speaker } from '../../sim/cast';
-import { Continue, ResultView, stableShuffle, StageHeader, useCountdown } from './common';
-import { Actor, DialogueBox, RpgMenu, RpgScene, SpeechBubble } from './rpg';
+import { Continue, ResultView, stableShuffle, StageHeader } from './common';
+import { Actor, DialogueBox, RpgMenu, RpgScene, SpeechBubble, voiceFor } from './rpg';
 import { EcoFastGame, FundusGame } from './imagingGames';
 import { DopplerGame, LocGame, MucousGame, PulseGame, RespGame, ThermoGame, TrcGame } from './vitalGames';
 
@@ -35,6 +35,9 @@ function linesFor(stage: NarrativeStage, ctx: ReturnType<typeof useSimCtx>): Dia
   if (bullets.length) lines.push({ who: 'mentor', text: bullets.join(' ') });
   return lines;
 }
+
+/** Voce del Primario: più grave di quella dei proprietari. */
+const MENTOR_VOICE = 125;
 
 export function NarrativeView({ stage }: { stage: NarrativeStage }) {
   const ctx = useSimCtx();
@@ -54,7 +57,14 @@ export function NarrativeView({ stage }: { stage: NarrativeStage }) {
     <div className="s-stage rpg">
       <StageHeader eyebrow={stage.phase} title={stage.title} />
       <RpgScene actors={actors} active={line.who} talking={typing && line.who !== 'narratore'} />
-      <DialogueBox key={i} speaker={speaker(c, line.who)} text={line.text} onTyping={setTyping} onNext={last ? undefined : () => setI(i + 1)}>
+      <DialogueBox
+        key={i}
+        speaker={speaker(c, line.who)}
+        text={line.text}
+        onTyping={setTyping}
+        onNext={last ? undefined : () => setI(i + 1)}
+        voice={line.who === 'owner' ? voiceFor(`${c.id}-${c.cast.owner.name}`) : line.who === 'mentor' ? MENTOR_VOICE : undefined}
+      >
         {last && (
           <RpgMenu>
             <button onClick={next}>{stage.cta}</button>
@@ -66,7 +76,7 @@ export function NarrativeView({ stage }: { stage: NarrativeStage }) {
   );
 }
 
-/* ================================================================ quiz a tempo */
+/* ======================================================= quiz (senza limite di tempo) */
 const LETTERS = 'ABCDEFGH';
 
 export function QuizView({ stage }: { stage: QuizStage }) {
@@ -76,7 +86,7 @@ export function QuizView({ stage }: { stage: QuizStage }) {
   // le opzioni vengono fissate all'ingresso nella fase (non cambiano se lo stato evolve)
   const [options] = useState<QuizOption[]>(() => {
     const o = dyn(stage.options, useSim.getState().ctx());
-    return stage.ordered ? o : stableShuffle(o, stage.id);
+    return stage.ordered ? o : stableShuffle(o, `${useSim.getState().seed}-${stage.id}`);
   });
   const [prompt] = useState(() => {
     const cx = stage.context ? dyn(stage.context, useSim.getState().ctx()) : '';
@@ -86,10 +96,9 @@ export function QuizView({ stage }: { stage: QuizStage }) {
   const [result, setResult] = useState<{ pts: number; frac: number } | null>(null);
   const [typing, setTyping] = useState(true);
 
-  const submit = (ids: string[], timedOut = false) => {
+  const submit = (ids: string[]) => {
     if (result || !useSim.getState().markDone(stage.id)) return;
     const st = useSim.getState();
-    const frac0 = Math.max(0, left / (stage.timer ?? 1));
     let frac: number;
     if (stage.multi) {
       const correct = options.filter((o) => o.score === 1);
@@ -99,11 +108,10 @@ export function QuizView({ stage }: { stage: QuizStage }) {
     } else {
       frac = ids.length ? options.find((o) => o.id === ids[0])!.score : 0;
     }
-    const speed = stage.timer ? (stage.multi ? 0.85 + 0.15 * frac0 : 0.7 + 0.3 * frac0) : 1;
-    const pts = Math.round(stage.points * frac * speed);
+    const pts = Math.round(stage.points * frac);
     st.addScore('ragionamento', pts, stage.points, stage.title);
     const chosen = options.filter((o) => ids.includes(o.id));
-    st.addLog('decisione', `${stage.title}: ${timedOut && !chosen.length ? 'tempo scaduto' : chosen.map((o) => o.text).join('; ')}`);
+    st.addLog('decisione', `${stage.title}: ${chosen.length ? chosen.map((o) => o.text).join('; ') : 'nessuna risposta selezionata'}`);
     st.advance(2);
     for (const o of chosen) st.applyEffects(o.effects);
     st.applyEffects(stage.after);
@@ -111,8 +119,6 @@ export function QuizView({ stage }: { stage: QuizStage }) {
     setResult({ pts, frac });
   };
 
-  // il tempo parte quando il primario ha finito di porre la domanda
-  const left = useCountdown(stage.timer, !result && !typing, () => submit(stage.multi ? picked : [], true));
   const toggle = (id: string) => {
     if (result) return;
     if (stage.multi) setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
@@ -120,7 +126,7 @@ export function QuizView({ stage }: { stage: QuizStage }) {
   };
 
   const verdict = result
-    ? `${result.frac >= 1 ? 'Ottimo!' : result.frac > 0 ? 'In parte.' : picked.length ? 'No.' : 'Tempo scaduto!'} ${stage.explanation}`
+    ? `${result.frac >= 1 ? 'Ottimo!' : result.frac > 0 ? 'In parte.' : 'No.'} ${stage.explanation}`
     : '';
   const tone = result ? (result.frac >= 1 ? 'good' : result.frac > 0 ? 'mid' : 'bad') : undefined;
 
@@ -141,12 +147,6 @@ export function QuizView({ stage }: { stage: QuizStage }) {
         <DialogueBox key="verdict" speaker={MENTOR} text={verdict} tone={tone} onTyping={setTyping}>
           <span className="rpg-score">+{result.pts} punti</span>
         </DialogueBox>
-      )}
-      {stage.timer && !result && !typing && (
-        <div className="s-timer">
-          <div className="s-timer-fill" style={{ width: `${(left / stage.timer) * 100}%` }} />
-          <span>{Math.ceil(left)} s</span>
-        </div>
       )}
       {(!typing || result) && (
         <RpgMenu cols={stage.multi ? 1 : 2} className="quiz">
@@ -223,7 +223,7 @@ export function InterviewView({ stage }: { stage: InterviewStage }) {
         talking={typing}
       />
       {lastQ && !closed && <p className="rpg-you">Tu: «{lastQ.q}»</p>}
-      <DialogueBox key={closed ? 'end' : lastQ?.id ?? 'start'} speaker={owner} text={text} onTyping={setTyping}>
+      <DialogueBox key={closed ? 'end' : lastQ?.id ?? 'start'} speaker={owner} text={text} onTyping={setTyping} voice={voiceFor(`${c.id}-${owner.name}`)}>
         {!closed && <span className="rpg-score">Domande rimaste: {left}</span>}
       </DialogueBox>
 

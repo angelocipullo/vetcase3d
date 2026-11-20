@@ -21,8 +21,11 @@ Fonti con licenza da verificare caso per caso: Freesound (filtra per CC0), libre
 
 `bark_1.mp3` e `bark_2.mp3` sono due abbai registrati (ricavati da un'unica clip): l'app li alterna, con una leggera variazione di intonazione, e anima il cane con la clip `Bark` del modello. Se mancano, l'abbaio viene sintetizzato.
 
-## Ambiente
+## Effetti dell'interfaccia
 
-`ambient_hospital.mp3` è il rumore di fondo dell'ambulatorio: “Hospital Busy X-Ray Room Tone” di *freesound_community* (file originale `freesound_community-hospital-busy-x-ray-room-tone-56441.mp3`, scaricato con il nome tipico di Pixabay, quindi presumibilmente sotto Pixabay Content License: verifica la licenza alla fonte). Rispetto all'originale sono stati tolti i silenzi iniziale/finale e ricodificato a 96 kbps.
+Non c'è musica né rumore d'ambiente. In `src/audio/engine.ts` sono **sintetizzati**:
 
-L'app lo riproduce in loop infinito con crossfade a potenza costante di 4 s (`startAmbient` in `src/audio/engine.ts`), a volume di sottofondo, e lo abbassa durante l'auscultazione. Il pulsante 🔊/🔇 (o il tasto `M`) silenzia tutto l'audio; la scelta resta salvata nel browser.
+- `click()`: blip 8-bit sui pulsanti (tono "selezione" per risposte e domande, "conferma" per gli altri), collegato in `src/App.tsx`;
+- `babble()`: voce "farfugliata" a sillabe che accompagna le risposte del proprietario nell'anamnesi mentre il testo compare (altezza della voce diversa per ogni proprietario, `voiceFor` in `src/ui/sim/rpg.tsx`).
+
+Il pulsante 🔊/🔇 (o il tasto `M`) silenzia tutto l'audio; la scelta resta salvata nel browser.

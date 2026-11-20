@@ -49,7 +49,7 @@ export const MICHELE: SimCase = {
       title: 'Arrivo in Pronto Soccorso',
       body:
         'Giovedì 3 settembre, ore 10:20. Un ragazzo appoggia sul bancone un trasportino. Dentro c’è Michele, gatto europeo rosso tigrato, maschio non castrato di 3 anni.\n\n«Da quasi una settimana è giù, mangia pochissimo e dorme sempre. Stamattina gli ho guardato la bocca ed è bianca. E respira veloce anche da fermo.»',
-      bullets: ['Caso più semplice: concentrati sull’inquadramento.', 'Le domande a tempo premiano le risposte rapide e corrette.'],
+      bullets: ['Caso più semplice: concentrati sull’inquadramento.', 'Nessun limite di tempo nelle domande: ragiona con calma.'],
       cta: 'Prendi in carico Michele',
     },
     {
@@ -58,7 +58,6 @@ export const MICHELE: SimCase = {
       phase: 'Triage',
       title: 'Prima mossa',
       question: 'Michele respira veloce e ha la bocca pallida. Cosa fai per prima cosa?',
-      timer: 25,
       points: 10,
       options: [
         { id: 'a', text: 'Valuto A-B-C maneggiandolo con delicatezza e raccolgo l’anamnesi', score: 1, feedback: 'Corretto: respira, vie aeree libere, nessun arresto. Un gatto anemico decompensa facilmente con lo stress: manipolazione minima.' },
@@ -109,7 +108,6 @@ export const MICHELE: SimCase = {
       title: 'Che cosa stai vedendo?',
       context: 'Mucose pallide, tachicardia, tachipnea a riposo, febbre lieve. Gatto giovane, intero, che esce e litiga, mai vaccinato né testato.',
       question: 'Qual è il problema principale da confermare subito?',
-      timer: 20,
       points: 10,
       options: [
         { id: 'a', text: 'Anemia grave', score: 1, feedback: 'Esatto: mucose pallide con tachicardia e tachipnea compensatorie. Serve l’ematocrito subito.' },
@@ -155,7 +153,6 @@ export const MICHELE: SimCase = {
       title: 'Leggi l’emocromo',
       context: 'HCT 11,5% · reticolociti 8 K/µL · MCV 58 fL (↑) · leucociti 3,1 K/µL (↓) · bilirubina nella norma.',
       question: 'Come classifichi questa anemia?',
-      timer: 25,
       points: 15,
       options: [
         { id: 'a', text: 'Non rigenerativa, di origine midollare', score: 1, feedback: 'Corretto: con un HCT così basso i reticolociti dovrebbero essere ben sopra 50 K/µL. Macrocitosi senza reticolocitosi e leucopenia indicano un danno al midollo, tipico della FeLV.' },
@@ -172,7 +169,6 @@ export const MICHELE: SimCase = {
       title: 'Il test rapido',
       context: 'SNAP FIV/FeLV: antigene FeLV p27 POSITIVO, anticorpi FIV negativi.',
       question: 'Come interpreti il risultato?',
-      timer: 25,
       points: 15,
       options: [
         { id: 'a', text: 'Antigenemia FeLV: in un gatto con questi segni è probabile un’infezione progressiva, da confermare (PCR provirale o ripetizione)', score: 1, feedback: 'Corretto. Il p27 indica virus circolante; con anemia non rigenerativa e leucopenia l’infezione progressiva è molto probabile. La conferma serve per la prognosi e per i conviventi.' },
@@ -189,7 +185,6 @@ export const MICHELE: SimCase = {
       title: 'Serve sangue',
       context: 'HCT 11,5%, tachipnea e tachicardia a riposo. Indicata una trasfusione di sangue intero.',
       question: 'Cosa è indispensabile fare prima di trasfondere un gatto, anche alla prima trasfusione?',
-      timer: 20,
       points: 15,
       options: [
         { id: 'a', text: 'Tipizzare il gruppo sanguigno (A/B/AB) e fare il crossmatch', score: 1, feedback: 'Esatto: i gatti hanno alloanticorpi naturali. Un gatto di gruppo B che riceve sangue A può avere una reazione emolitica mortale già alla prima trasfusione.' },
@@ -207,7 +202,6 @@ export const MICHELE: SimCase = {
       title: 'Piano di gestione',
       question: 'Cosa consigli al proprietario? (seleziona tutte le scelte corrette)',
       multi: true,
-      timer: 45,
       points: 20,
       options: [
         { id: 'isolare', text: 'Tenerlo in casa e separato da Bianca (ciotole e lettiere separate)', score: 1, feedback: 'La FeLV si trasmette con saliva e contatto stretto (ciotole, grooming).' },

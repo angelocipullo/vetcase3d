@@ -12,14 +12,14 @@ npm run build
 
 ## Simulatore clinico (gameplay principale)
 
-**Inizia il turno** avvia il simulatore di Pronto Soccorso su due casi: **Michele** (gatto con FeLV, generato, facile) e **Birillo** (caso reale anonimizzato, gatto con iperaldosteronismo primario, difficile): anamnesi con budget di domande, scheda PS con minigiochi (termometro, polso, respiro, mucose, TRC, stato mentale, PA Doppler), quiz a tempo con distrattori, richiesta esami con costi e tempi, interpretazione dell'emogas, preparazione della pompa di KCl, terapia intensiva con un paziente che evolve ora per ora (ipokaliemia refrattaria), lettura della TC e debriefing.
+La schermata iniziale mostra un piccolo ospedale in pixel art: **Iniziamo il turno di lavoro** fa entrare il medico nell'edificio (animazione in `src/ui/TitleScene.tsx`) e apre la sala d'attesa con l'elenco dei pazienti e la loro difficoltà. Il simulatore di Pronto Soccorso ha tre casi: **Michele** (gatto con FeLV, generato, facile), **Nala** (caso reale anonimizzato, pitbull con diarrea cronica, anemia immunomediata e sospetto linfoma, medio) e **Birillo** (caso reale anonimizzato, gatto con iperaldosteronismo primario, difficile): anamnesi con budget di domande, scheda PS con minigiochi (termometro, polso, respiro, mucose, TRC, stato mentale, PA Doppler), quiz con distrattori senza limite di tempo, richiesta esami con costi e tempi, interpretazione dell'emogas, preparazione della pompa di KCl, terapia intensiva con un paziente che evolve ora per ora (ipokaliemia refrattaria), lettura della TC e debriefing.
 
-Codice in `src/sim/` (motore e casi) e `src/ui/sim/` (interfaccia). Architettura, come aggiungere un caso e la strada per generarli: [`docs/simulatore.md`](docs/simulatore.md). Dati reali e generati di Birillo: [`docs/birillo.md`](docs/birillo.md); caso Michele: [`docs/michele.md`](docs/michele.md). I PDF della documentazione clinica originale non sono versionati (`.gitignore`).
+Codice in `src/sim/` (motore e casi) e `src/ui/sim/` (interfaccia). Architettura, come aggiungere un caso e la strada per generarli: [`docs/simulatore.md`](docs/simulatore.md). Dati reali e generati di Birillo: [`docs/birillo.md`](docs/birillo.md); caso Michele: [`docs/michele.md`](docs/michele.md); caso Nala: [`docs/nala.md`](docs/nala.md). I PDF della documentazione clinica originale non sono versionati (`.gitignore`).
 
 ## Ambulatorio 3D (prototipo)
 
 
-La schermata iniziale precarica la scena 3D (`src/three/preload.ts`); **Inizia** assegna un caso casuale (diverso dal precedente) e un nome sorteggiato al paziente. Dopo la scheda di accettazione (segnalamento, motivo della visita, anamnesi) visiti il cane e formuli la diagnosi, che resta nascosta fino al risultato. Gli shader vengono compilati in background (`ShaderWarmup` in `Scene.tsx`) mentre leggi la scheda.
+La schermata iniziale precarica la scena 3D (`src/three/preload.ts`); il pulsante **Ambulatorio 3D (prototipo)** nella sala d'attesa assegna un caso casuale (diverso dal precedente) e un nome sorteggiato al paziente. Dopo la scheda di accettazione (segnalamento, motivo della visita, anamnesi) visiti il cane e formuli la diagnosi, che resta nascosta fino al risultato. Gli shader vengono compilati in background (`ShaderWarmup` in `Scene.tsx`) mentre leggi la scheda.
 
 Su desktop: `1–4` strumenti, `D` diagnosi, `C` cartella, `G` guida, `Esc` chiude.
 
@@ -45,6 +45,8 @@ Per aggiungere un caso: aggiungi un valore a `CaseId` e una voce in `CASES`.
 ## Audio
 
 `src/audio/engine.ts` **sintetizza** in tempo reale S1/S2, soffio sistolico, aritmie, murmure vescicolare, crepitii e sibili, sulla frequenza del caso. Funziona senza file.
+
+Non c'è musica di sottofondo. Sono sintetizzati anche i blip dei pulsanti e la voce "farfugliata" del proprietario che risponde alle domande dell'anamnesi. Il tasto `M` o il pulsante 🔊 silenziano tutto.
 
 Per usare **registrazioni vere** mettile in `public/audio/` (vedi il README lì): se il file esiste viene usato al posto della sintesi.
 

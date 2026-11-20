@@ -26,7 +26,11 @@ export type ExamId =
   | 'ecocardio'
   | 'pa'
   | 'fondo'
-  | 'gruppo';
+  | 'gruppo'
+  | 'coprologico'
+  | 'pcr'
+  | 'coombs'
+  | 'citologia';
 
 export type DrugId =
   | 'maropitant'
@@ -194,8 +198,6 @@ export interface QuizStage extends StageBase {
   multi?: boolean;
   /** Mantiene l'ordine delle opzioni (altrimenti vengono mescolate). */
   ordered?: boolean;
-  /** Secondi per rispondere (stile quiz TV): rispondere presto dà un bonus. */
-  timer?: number;
   points: number;
   explanation: string;
   /** Effetti applicati SEMPRE dopo la risposta (la "strada corretta" che il caso prende comunque). */
@@ -301,12 +303,20 @@ export type SpriteSpec =
       kind: 'human';
       skin: string;
       hair: string;
-      hairStyle: 'short' | 'long' | 'bun' | 'bald';
+      /** 'thin' = capelli radi (stempiato, pochi ciuffi in cima). */
+      hairStyle: 'short' | 'long' | 'bun' | 'bald' | 'thin';
       clothes: string;
       coat?: boolean;
-      glasses?: boolean;
+      /** true = occhiali squadrati blu; 'round' = occhiali tondi neri. */
+      glasses?: boolean | 'round';
+      /** Colore dell'iride (default scuro). */
+      eyes?: string;
+      /** Baffi dello stesso colore dei capelli. */
+      mustache?: boolean;
     }
-  | { kind: 'cat'; fur: string; dark: string; eyes: string; muzzle?: string };
+  | { kind: 'cat'; fur: string; dark: string; eyes: string; muzzle?: string }
+  /** Cane a orecchie corte/ripiegate (es. pitbull); `blaze` = lista bianca su fronte e muso. */
+  | { kind: 'dog'; fur: string; dark: string; eyes: string; muzzle?: string; blaze?: boolean };
 
 export interface Speaker {
   name: string;

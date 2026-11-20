@@ -11,7 +11,7 @@ Un caso è una sequenza di **fasi** (`Stage`). Ogni tipo di fase è un meccanism
 | Tipo | Meccanica | Esempio (Birillo) |
 |---|---|---|
 | `narrative` | testo e scelta di proseguire | arrivo in PS |
-| `quiz` | scelta multipla a tempo con distrattori (stile *L'Eredità*); risposte parziali, bonus velocità, effetti sul paziente | "Cosa fai per primo?", scala di Greco, sospetto diagnostico |
+| `quiz` | scelta multipla con distrattori, senza limite di tempo (il gioco è didattico); risposte parziali, effetti sul paziente | "Cosa fai per primo?", scala di Greco, sospetto diagnostico |
 | `interview` | anamnesi: budget di domande, domande chiave/utili/irrilevanti | allergie, terapie, PU/PD, diarrea, ultimo pasto, ambiente, dieta |
 | `vitals` | scheda PS con un minigioco per ciascun parametro | termometro, polso (conta in 6 s + bradi/normo/tachicardico rispetto a `hrRange`), respiro (15 s), mucose, TRC (l’utente stima i secondi, tolleranza ±0,5 s), LOC, PA Doppler |
 | `orders` | richiesta esami con costi e tempi; punteggio di appropriatezza; minigiochi per alcuni esami | Eco-FAST, Doppler, fondo oculare |
@@ -30,13 +30,14 @@ Sei aree (`src/sim/scoring.ts`): ragionamento clinico, anamnesi, esame clinico, 
 | Caso | Difficoltà | Origine | Diagnosi |
 |---|---|---|---|
 | Michele (`cases/michele.ts`) | facile | generato | FeLV progressiva con anemia non rigenerativa ([docs/michele.md](michele.md)) |
+| Nala (`cases/nala.ts`) | media | reale, anonimizzato | anemia immunomediata secondaria con iperplasia linfoide atipica, sospetto linfoma ([docs/nala.md](nala.md)) |
 | Birillo (`cases/birillo.ts`) | difficile | reale, anonimizzato | iperaldosteronismo primario ([docs/birillo.md](birillo.md)) |
 
 ## Interfaccia in stile RPG
 
 Le parti conversazionali usano un'interfaccia da RPG anni '90 (`src/ui/sim/rpg.tsx`):
 
-- **ritratti in pixel art 18×18 generati in codice** da un `SpriteSpec` (umano: pelle, capelli, acconciatura, vestiti, camice, occhiali; gatto: pelo, tigratura, occhi). Un nuovo personaggio è solo un oggetto, senza immagini;
+- **ritratti in pixel art 18×18 generati in codice** da un `SpriteSpec` (umano: pelle, capelli, acconciatura, vestiti, camice, occhiali; gatto: pelo, tigratura, occhi; cane: pelo, orecchie ripiegate, lista bianca). Un nuovo personaggio è solo un oggetto, senza immagini;
 - **scena** con i personaggi sulle loro piattaforme: chi parla è in primo piano e muove la bocca;
 - **finestra di dialogo** con cartellino del nome, testo a macchina da scrivere (clic/Invio per completare e proseguire) e ▼ lampeggiante;
 - **menu di scelta** con cursore ▶ per le risposte dei quiz e le domande dell'anamnesi.

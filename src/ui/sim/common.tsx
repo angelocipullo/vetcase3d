@@ -74,28 +74,6 @@ export function ResultView({ doc, compact = false }: { doc: ResultDoc; compact?:
   );
 }
 
-/** Conto alla rovescia (secondi reali) per le domande a tempo. */
-export function useCountdown(seconds: number | undefined, running: boolean, onEnd: () => void) {
-  const [left, setLeft] = useState(seconds ?? 0);
-  const endRef = useRef(onEnd);
-  endRef.current = onEnd;
-  useEffect(() => {
-    if (!seconds || !running) return;
-    const startedAt = performance.now() - (seconds - left) * 1000;
-    const id = setInterval(() => {
-      const l = Math.max(0, seconds - (performance.now() - startedAt) / 1000);
-      setLeft(l);
-      if (l <= 0) {
-        clearInterval(id);
-        endRef.current();
-      }
-    }, 100);
-    return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seconds, running]);
-  return left;
-}
-
 export function StageHeader({ eyebrow, title, children }: { eyebrow: string; title: string; children?: React.ReactNode }) {
   return (
     <header className="s-stage-head">
@@ -182,12 +160,19 @@ export function TrendChart({
 
 /** Mescola in modo stabile (seme = stringa), così le opzioni non cambiano a ogni render. */
 export function stableShuffle<T>(list: T[], seed: string): T[] {
-  let h = 0;
-  for (const ch of seed) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  // hash della stringa (FNV-1a) → PRNG mulberry32: distribuzione uniforme anche sui bit bassi
+  let h = 2166136261;
+  for (const ch of seed) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
+  const rand = () => {
+    h = (h + 0x6d2b79f5) >>> 0;
+    let t = h;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
   const out = [...list];
   for (let i = out.length - 1; i > 0; i--) {
-    h = (h * 1103515245 + 12345) >>> 0;
-    const j = h % (i + 1);
+    const j = Math.floor(rand() * (i + 1));
     [out[i], out[j]] = [out[j], out[i]];
   }
   return out;

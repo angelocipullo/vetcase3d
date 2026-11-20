@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { audio } from '../../audio/engine';
 import { Speaker, SpriteSpec } from '../../sim/types';
 
 /* =====================================================================
@@ -51,7 +52,14 @@ function humanGrid(s: Extract<SpriteSpec, { kind: 'human' }>, talking: boolean):
   rect(g, 5, 4, 12, 10, 's');
   rect(g, 6, 11, 11, 11, 's');
   // capelli
-  if (s.hairStyle !== 'bald') {
+  if (s.hairStyle === 'thin') {
+    // stempiato: tempie e nuca, qualche ciuffo rado in cima
+    rect(g, 4, 5, 4, 8, 'h');
+    rect(g, 13, 5, 13, 8, 'h');
+    rect(g, 5, 4, 5, 5, 'h');
+    rect(g, 12, 4, 12, 5, 'h');
+    g[3][7] = g[3][10] = g[4][8] = 'h';
+  } else if (s.hairStyle !== 'bald') {
     rect(g, 5, 2, 12, 3, 'h');
     rect(g, 4, 3, 13, 4, 'h');
     rect(g, 4, 5, 4, 7, 'h');
@@ -69,14 +77,29 @@ function humanGrid(s: Extract<SpriteSpec, { kind: 'human' }>, talking: boolean):
   // occhi, occhiali, guance, bocca
   g[7][7] = 'e';
   g[7][10] = 'e';
-  if (s.glasses) {
+  if (s.glasses === 'round') {
+    // due lenti tonde nere: anello senza spigoli, così l'occhio resta visibile al centro
+    for (const cx of [7, 10]) {
+      g[6][cx] = g[8][cx] = 'G';
+      g[7][cx - 1] = g[7][cx + 1] = 'G';
+    }
+    g[7][5] = g[7][12] = 'G';
+  } else if (s.glasses) {
     for (const x of [6, 8, 9, 11]) g[7][x] = 'g';
     g[6][6] = g[6][7] = g[6][8] = 'g';
     g[6][9] = g[6][10] = g[6][11] = 'g';
   }
-  g[8][6] = 'b';
-  g[8][11] = 'b';
-  if (talking) {
+  if (s.glasses !== 'round') {
+    g[8][6] = 'b';
+    g[8][11] = 'b';
+  }
+  if (s.mustache) {
+    // baffi sopra la bocca, che scende di una riga
+    rect(g, 6, 9, 11, 9, 'h');
+    g[10][6] = g[10][11] = 'h';
+    if (talking) rect(g, 8, 10, 9, 11, 'o');
+    else g[10][8] = g[10][9] = 'm';
+  } else if (talking) {
     rect(g, 8, 9, 9, 10, 'o');
   } else {
     g[9][8] = g[9][9] = 'm';
@@ -118,16 +141,59 @@ function catGrid(s: Extract<SpriteSpec, { kind: 'cat' }>, talking: boolean): Gri
   return outline(g);
 }
 
+/** Cane a testa larga e orecchie ripiegate (tipo pitbull/molossoide). */
+function dogGrid(s: Extract<SpriteSpec, { kind: 'dog' }>, talking: boolean): Grid {
+  const g = blank();
+  // cranio largo
+  for (let y = 0; y < N; y++)
+    for (let x = 0; x < N; x++) {
+      const dx = (x - 8.5) / 7;
+      const dy = (y - 8.5) / 5.6;
+      if (dx * dx + dy * dy <= 1) g[y][x] = 'f';
+    }
+  // orecchie a rosa, ripiegate in avanti
+  rect(g, 1, 3, 4, 4, 'd');
+  rect(g, 2, 5, 3, 5, 'd');
+  rect(g, 13, 3, 16, 4, 'd');
+  rect(g, 14, 5, 15, 5, 'd');
+  // muso ampio e mascella
+  rect(g, 4, 11, 13, 15, 'l');
+  rect(g, 5, 16, 12, 16, 'l');
+  if (s.blaze) {
+    rect(g, 8, 3, 9, 10, 'w');
+    rect(g, 7, 11, 10, 11, 'w');
+  }
+  // occhi distanziati
+  g[8][5] = 'y';
+  g[8][6] = 'e';
+  g[8][12] = 'y';
+  g[8][11] = 'e';
+  g[7][5] = g[7][6] = 'd';
+  g[7][11] = g[7][12] = 'd';
+  // tartufo
+  rect(g, 7, 12, 10, 13, 'n');
+  g[12][7] = g[12][10] = 'f';
+  // bocca e lingua
+  if (talking) {
+    rect(g, 6, 15, 11, 16, 'o');
+    rect(g, 8, 16, 9, 16, 'p');
+  } else {
+    rect(g, 6, 15, 11, 15, 'k');
+    g[14][8] = g[14][9] = 'k';
+  }
+  return outline(g);
+}
+
 function paletteFor(s: SpriteSpec): Record<string, string> {
   const base = { k: '#1d1b2c', e: '#1d1b2c', o: '#7a1d24', w: '#e9ecef' };
   if (s.kind === 'human')
-    return { ...base, s: s.skin, h: s.hair, c: s.clothes, C: '#343a40', W: '#f8f9fa', g: '#364fc7', b: '#f3a7a0', m: '#9c3b3b' };
-  return { ...base, f: s.fur, d: s.dark, l: s.muzzle ?? s.fur, p: '#f783ac', y: s.eyes };
+    return { ...base, s: s.skin, h: s.hair, c: s.clothes, C: '#343a40', W: '#f8f9fa', g: '#364fc7', G: '#141218', b: '#f3a7a0', m: '#9c3b3b', e: s.eyes ?? base.e };
+  return { ...base, f: s.fur, d: s.dark, l: s.muzzle ?? s.fur, p: '#f783ac', y: s.eyes, n: '#2b2523' };
 }
 
 export function PixelSprite({ spec, talking = false, size = 120, className = '' }: { spec: SpriteSpec; talking?: boolean; size?: number; className?: string }) {
   const rects = useMemo(() => {
-    const g = spec.kind === 'human' ? humanGrid(spec, talking) : catGrid(spec, talking);
+    const g = spec.kind === 'human' ? humanGrid(spec, talking) : spec.kind === 'dog' ? dogGrid(spec, talking) : catGrid(spec, talking);
     const pal = paletteFor(spec);
     const out: { x: number; y: number; w: number; fill: string }[] = [];
     for (let y = 0; y < N; y++) {
@@ -233,6 +299,7 @@ export function DialogueBox({
   children,
   tone,
   onTyping,
+  voice,
 }: {
   speaker?: Speaker;
   text: string;
@@ -240,8 +307,16 @@ export function DialogueBox({
   children?: React.ReactNode;
   tone?: 'good' | 'mid' | 'bad';
   onTyping?: (typing: boolean) => void;
+  /** Altezza (Hz) della voce farfugliata che accompagna il testo mentre compare; assente = muto. */
+  voice?: number;
 }) {
   const { shown, done, skip } = useTypewriter(text);
+  // una sillaba ogni due lettere mentre il testo compare (gli spazi e la punteggiatura fanno pausa)
+  useEffect(() => {
+    if (!voice || done) return;
+    const ch = shown.slice(-1);
+    if (shown.length % 2 === 0 && /\p{L}/u.test(ch)) audio.babble(ch, voice);
+  }, [shown, voice, done]);
   const cb = useRef(onTyping);
   cb.current = onTyping;
   useEffect(() => cb.current?.(!done), [done]);
@@ -271,6 +346,13 @@ export function DialogueBox({
       {done && children}
     </div>
   );
+}
+
+/** Voce del personaggio per il parlottio: stabile per nome, fra ~170 e ~330 Hz. */
+export function voiceFor(name: string) {
+  let h = 0;
+  for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return 170 + (h % 160);
 }
 
 /** Menu di scelta con cursore ▶ (le opzioni sono normali pulsanti). */

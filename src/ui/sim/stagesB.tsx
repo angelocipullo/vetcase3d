@@ -338,7 +338,7 @@ export function CtView({ stage }: { stage: CtStage }) {
 /** Diagnosi finale a scelta multipla: va data prima di vedere l'esito. */
 function FinalDiagnosis({ stage }: { stage: DebriefStage }) {
   const c = useSim((s) => s.caseDef)!;
-  const options = useMemo(() => stableShuffle(c.diagnosisOptions, `${c.id}-dx`), [c]);
+  const options = useMemo(() => stableShuffle(c.diagnosisOptions, `${useSim.getState().seed}-${c.id}-dx`), [c]);
   const [pick, setPick] = useState<string | null>(null);
   return (
     <div className="s-stage">

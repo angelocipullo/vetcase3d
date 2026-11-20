@@ -9,20 +9,25 @@ import { audio } from '../audio/engine';
 import { preloadScene } from '../three/preload';
 import { SoundToggle } from './SoundToggle';
 import { SIM_CASES } from '../sim/cases';
+import { PixelSprite } from './sim/rpg';
+import { ClinicScene } from './TitleScene';
 
-const STEPS: [string, string, string][] = [
-  ['🗣️', 'Anamnesi e triage', 'Domande al proprietario e parametri di PS con prove pratiche'],
-  ['🧪', 'Esami e ragionamento', 'Scegli gli esami, interpreta emogas e immagini, rispondi a tempo'],
-  ['💧', 'Terapia e monitoraggio', 'Imposta la pompa, segui il paziente che evolve ora per ora'],
-];
+const DIFFICULTY = ['', 'facile', 'medio', 'difficile'];
 
-/** Schermata iniziale: precarica la scena 3D e avvia una visita con paziente e diagnosi casuali. */
+type TitlePhase = 'outside' | 'walking' | 'wipe' | 'inside';
+
+/**
+ * Schermata iniziale: fuori c'è il piccolo ospedale in pixel art con "Iniziamo il turno di lavoro";
+ * il medico entra camminando, una transizione a bande chiude lo schermo e dentro compare l'elenco
+ * dei pazienti (casi clinici) con la difficoltà. Precarica anche la scena 3D del prototipo.
+ */
 export function TitleScreen() {
   const startRandom = useGame((s) => s.startRandom);
   const startSim = useGame((s) => s.startSim);
   const { active, loaded, total, errors } = useProgress();
   const [ready, setReady] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [phase, setPhase] = useState<TitlePhase>('outside');
 
   useEffect(() => {
     preloadScene();
@@ -39,7 +44,7 @@ export function TitleScreen() {
   }, [active, loaded, total, errors.length, ready]);
 
   const pct = ready ? 100 : total ? Math.min(99, Math.round((loaded / total) * 100)) : 0;
-  const start = () => {
+  const start3d = () => {
     if (!ready || starting) return;
     audio.unlock();
     setStarting(true);
@@ -47,11 +52,22 @@ export function TitleScreen() {
     setTimeout(startRandom, 60);
   };
 
+  const enter = () => {
+    if (phase !== 'outside') return;
+    audio.unlock();
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    setPhase(reduced ? 'inside' : 'walking');
+  };
+  const entered = () => {
+    setPhase('wipe');
+    setTimeout(() => setPhase('inside'), 650);
+  };
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Enter' || e.key === ' ') {
-        audio.unlock();
-        startSim();
+        if (phase === 'outside') enter();
+        else if (phase === 'walking') entered();
       }
       if (e.key === 'm' || e.key === 'M') useGame.getState().toggleMute();
     };
@@ -60,64 +76,83 @@ export function TitleScreen() {
   });
 
   return (
-    <div className="screen title-screen">
+    <div className={`screen title-screen phase-${phase}`}>
       <div className="title-glow" aria-hidden />
       <SoundToggle className="title-sound" />
-      <main className="title-main">
-        <p className="eyebrow">Simulatore clinico veterinario</p>
-        <h1 className="title-logo">
-          VetCase <span>3D</span>
-        </h1>
-        <p className="title-tagline">
-          Sei il medico di turno in Pronto Soccorso.
-          <br />
-          Raccogli i dati, ragiona, tratta: il paziente evolve con le tue scelte.
-        </p>
 
-        <div className="case-picks">
-          {SIM_CASES.map((c, i) => (
-            <button
-              key={c.id}
-              className={`case-pick ${i === 0 ? 'first' : ''}`}
-              onClick={() => {
-                audio.unlock();
-                startSim(c.id);
-              }}
-            >
-              <span className="case-pick-name">
-                {c.patient.name} <small>{c.patient.species}, {c.patient.age}</small>
-              </span>
-              <span className="case-pick-title">{c.title}</span>
-              <span className="case-pick-meta">
-                {'●'.repeat(c.difficulty)}
-                {'○'.repeat(3 - c.difficulty)} {c.difficulty === 1 ? 'facile' : c.difficulty === 2 ? 'medio' : 'difficile'} · {c.generated ? 'caso generato' : 'caso reale'}
-              </span>
-            </button>
-          ))}
-        </div>
-        <button
-          className={`start-btn secondary ${ready ? 'ready-2' : ''}`}
-          onClick={start}
-          disabled={!ready}
-          style={{ '--pct': `${pct}%` } as React.CSSProperties}
-        >
-          <span className="start-fill" aria-hidden />
-          <span className="start-label">
-            {starting ? 'Entro in ambulatorio…' : ready ? 'Ambulatorio 3D (prototipo)' : `Preparo l’ambulatorio 3D… ${pct}%`}
-          </span>
-        </button>
-        <p className="title-hint">Scegli il paziente · su desktop Invio avvia il primo caso</p>
+      {phase !== 'inside' ? (
+        <main className="title-main">
+          <p className="eyebrow">Simulatore clinico veterinario</p>
+          <h1 className="title-logo small">
+            VetCase <span>3D</span>
+          </h1>
+          {/* durante la camminata un tocco salta l'animazione */}
+          <div className="title-scene-wrap" onClick={phase === 'walking' ? entered : undefined}>
+            <ClinicScene walking={phase !== 'outside'} onEntered={entered} />
+          </div>
+          <button className="pixel-btn" onClick={enter} disabled={phase !== 'outside'}>
+            ▶ Iniziamo il turno di lavoro
+          </button>
+          <p className="title-hint">{phase === 'outside' ? 'Premi Invio o tocca il pulsante' : 'Tocca per saltare'}</p>
+        </main>
+      ) : (
+        <main className="title-main lobby">
+          <div className="lobby-box">
+            <p className="lobby-eyebrow">Pronto Soccorso · sala d’attesa</p>
+            <h2>Pazienti da visitare</h2>
+            <p className="lobby-sub">Scegli chi visitare. Prenditi tutto il tempo: conta il ragionamento.</p>
+            <ul className="lobby-list">
+              {SIM_CASES.map((c) => (
+                <li key={c.id}>
+                  <button
+                    className="lobby-pick"
+                    onClick={() => {
+                      audio.unlock();
+                      startSim(c.id);
+                    }}
+                  >
+                    <span className="lobby-face" aria-hidden>
+                      <PixelSprite spec={c.cast.patient} size={56} />
+                    </span>
+                    <span className="lobby-info">
+                      <b>
+                        {c.patient.name} <small>{c.patient.species} {c.patient.breed.toLowerCase()}, {c.patient.age}</small>
+                      </b>
+                      <span className="lobby-title">{c.title}</span>
+                      <span className={`lobby-meta d${c.difficulty}`}>
+                        <span className="lobby-stars" aria-label={`difficoltà ${DIFFICULTY[c.difficulty]}`}>
+                          {'★'.repeat(c.difficulty)}
+                          <i>{'★'.repeat(3 - c.difficulty)}</i>
+                        </span>
+                        {DIFFICULTY[c.difficulty]} · {c.generated ? 'caso generato' : 'caso reale'}
+                      </span>
+                    </span>
+                    <span className="lobby-go" aria-hidden>▶</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <div className="lobby-foot">
+              <button className="lobby-link" onClick={() => setPhase('outside')}>← Esci</button>
+              <button
+                className={`start-btn secondary ${ready ? 'ready-2' : ''}`}
+                onClick={start3d}
+                disabled={!ready}
+                style={{ '--pct': `${pct}%` } as React.CSSProperties}
+              >
+                <span className="start-fill" aria-hidden />
+                <span className="start-label">
+                  {starting ? 'Entro in ambulatorio…' : ready ? 'Ambulatorio 3D (prototipo)' : `Preparo l’ambulatorio 3D… ${pct}%`}
+                </span>
+              </button>
+            </div>
+          </div>
+        </main>
+      )}
 
-        <ol className="title-steps">
-          {STEPS.map(([icon, name, text]) => (
-            <li key={name}>
-              <span className="step-icon">{icon}</span>
-              <b>{name}</b>
-              <span>{text}</span>
-            </li>
-          ))}
-        </ol>
-      </main>
+      {/* transizione a bande che chiudono e riaprono lo schermo */}
+      {(phase === 'wipe' || phase === 'inside') && <div className={`title-wipe ${phase}`} aria-hidden />}
+
       <p className="credits">
         Cane 3D: “PitBull” di{' '}
         <a href="https://sketchfab.com/3d-models/2be37d5b9f754ed4bcc2d8f41b23a1d7" target="_blank" rel="noreferrer">
