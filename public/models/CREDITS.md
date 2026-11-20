@@ -23,3 +23,7 @@ Animazioni incluse: Bark, Die, Eat, IDdle, Run, Sit, Stand up, Walkl.
   verso le spalle e lo skinning fa una piega verticale sulla gola.
 - Ottimizzato con gltf-transform (`optimize --texture-compress webp --compress meshopt --simplify false`):
   4,7 MB → 0,67 MB.
+
+## Gatto
+
+Il gatto dell'ambulatorio 3D non usa file esterni: è un modello semi-realistico costruito in codice (forme scolpite e mantello tigrato generato) (`src/three/Cat.tsx`), con i colori di ciascun caso.

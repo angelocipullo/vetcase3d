@@ -67,6 +67,8 @@ interface SimState {
   done: Record<string, boolean>;
   /** Diagnosi finale scelta nel debriefing (id dell'opzione). */
   finalDx: string | null;
+  /** Seme casuale della partita: l'ordine delle risposte cambia a ogni partita. */
+  seed: number;
 
   start: (c: SimCase) => void;
   stage: () => Stage | null;
@@ -114,6 +116,7 @@ export const useSim = create<SimState>((set, get) => ({
   modal: null,
   done: {},
   finalDx: null,
+  seed: 0,
 
   start: (c) => {
     set({
@@ -134,6 +137,7 @@ export const useSim = create<SimState>((set, get) => ({
       modal: null,
       done: {},
   finalDx: null,
+      seed: Math.floor(Math.random() * 2 ** 32),
     });
   },
 
@@ -254,6 +258,9 @@ export const useSim = create<SimState>((set, get) => ({
           break;
         case 'flag':
           s.setFlag(e.flag);
+          break;
+        case 'therapy':
+          s.addLog('terapia', e.text);
           break;
         case 'safety':
           s.addScore('terapia', -e.penalty, 0, e.title);

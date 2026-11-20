@@ -35,6 +35,10 @@ export const EXAMS: Record<ExamId, ExamMeta> = {
   ecocardio: { label: 'Ecocardiografia', short: 'Ecocardio', icon: '🫀', cost: 120, workMin: 40, turnaroundMin: 0, kind: 'strumentale' },
   pa: { label: 'Pressione arteriosa (Doppler)', short: 'PA Doppler', icon: '🎚️', cost: 15, workMin: 5, turnaroundMin: 0, kind: 'strumentale', minigame: 'doppler' },
   gruppo: { label: 'Tipizzazione del gruppo sanguigno (AB) + crossmatch', short: 'Gruppo sanguigno', icon: '🅰️', cost: 40, workMin: 5, turnaroundMin: 15, kind: 'lab' },
+  coprologico: { label: 'Esame coprologico quali-quantitativo (FLOTAC)', short: 'Coprologico', icon: '💩', cost: 25, workMin: 2, turnaroundMin: 120, kind: 'lab' },
+  pcr: { label: 'PCR malattie trasmesse da vettori + Leishmania', short: 'PCR vettori', icon: '🦟', cost: 90, workMin: 5, turnaroundMin: 24 * 60, kind: 'lab' },
+  coombs: { label: 'Test di Coombs diretto', short: 'Coombs', icon: '🧲', cost: 40, workMin: 0, turnaroundMin: 60, kind: 'lab' },
+  citologia: { label: 'Citologia da agoaspirato linfonodale', short: 'Citologia linfonodo', icon: '🔬', cost: 50, workMin: 10, turnaroundMin: 240, kind: 'lab' },
   fondo: { label: 'Esame del fondo oculare', short: 'Fondo occhio', icon: '👁️', cost: 20, workMin: 5, turnaroundMin: 0, kind: 'strumentale', minigame: 'fondo' },
 };
 

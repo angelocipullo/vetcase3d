@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { EXAMS, VITAL_LABEL } from '../../sim/exams';
 import { dyn, useSim, useSimCtx } from '../../sim/store';
+import { useGame } from '../../store';
+import { toolForVital } from '../clinicTools';
+import { TechniqueError, Tool } from '../../game/types';
 import {
   AbgStage,
   DialogueLine,
@@ -17,10 +20,10 @@ import {
   VitalsStage,
 } from '../../sim/types';
 import { MENTOR, speaker } from '../../sim/cast';
-import { Continue, ResultView, stableShuffle, StageHeader, useCountdown } from './common';
-import { Actor, DialogueBox, RpgMenu, RpgScene, SpeechBubble } from './rpg';
+import { Continue, ResultView, stableShuffle, StageHeader } from './common';
+import { Actor, DialogueBox, RpgMenu, RpgScene, SpeechBubble, voiceFor } from './rpg';
 import { EcoFastGame, FundusGame } from './imagingGames';
-import { DopplerGame, LocGame, MucousGame, PulseGame, RespGame, ThermoGame, TrcGame } from './vitalGames';
+import { DopplerGame, LocGame, MucousGame, prelievoErrorLabel, PulseGame, RespGame, ThermoGame, TrcGame } from './vitalGames';
 
 /* ================================================================ narrativa */
 function linesFor(stage: NarrativeStage, ctx: ReturnType<typeof useSimCtx>): DialogueLine[] {
@@ -35,6 +38,9 @@ function linesFor(stage: NarrativeStage, ctx: ReturnType<typeof useSimCtx>): Dia
   if (bullets.length) lines.push({ who: 'mentor', text: bullets.join(' ') });
   return lines;
 }
+
+/** Voce del Primario: più grave di quella dei proprietari. */
+const MENTOR_VOICE = 125;
 
 export function NarrativeView({ stage }: { stage: NarrativeStage }) {
   const ctx = useSimCtx();
@@ -54,7 +60,14 @@ export function NarrativeView({ stage }: { stage: NarrativeStage }) {
     <div className="s-stage rpg">
       <StageHeader eyebrow={stage.phase} title={stage.title} />
       <RpgScene actors={actors} active={line.who} talking={typing && line.who !== 'narratore'} />
-      <DialogueBox key={i} speaker={speaker(c, line.who)} text={line.text} onTyping={setTyping} onNext={last ? undefined : () => setI(i + 1)}>
+      <DialogueBox
+        key={i}
+        speaker={speaker(c, line.who)}
+        text={line.text}
+        onTyping={setTyping}
+        onNext={last ? undefined : () => setI(i + 1)}
+        voice={line.who === 'owner' ? voiceFor(`${c.id}-${c.cast.owner.name}`) : line.who === 'mentor' ? MENTOR_VOICE : undefined}
+      >
         {last && (
           <RpgMenu>
             <button onClick={next}>{stage.cta}</button>
@@ -66,7 +79,7 @@ export function NarrativeView({ stage }: { stage: NarrativeStage }) {
   );
 }
 
-/* ================================================================ quiz a tempo */
+/* ======================================================= quiz (senza limite di tempo) */
 const LETTERS = 'ABCDEFGH';
 
 export function QuizView({ stage }: { stage: QuizStage }) {
@@ -76,7 +89,7 @@ export function QuizView({ stage }: { stage: QuizStage }) {
   // le opzioni vengono fissate all'ingresso nella fase (non cambiano se lo stato evolve)
   const [options] = useState<QuizOption[]>(() => {
     const o = dyn(stage.options, useSim.getState().ctx());
-    return stage.ordered ? o : stableShuffle(o, stage.id);
+    return stage.ordered ? o : stableShuffle(o, `${useSim.getState().seed}-${stage.id}`);
   });
   const [prompt] = useState(() => {
     const cx = stage.context ? dyn(stage.context, useSim.getState().ctx()) : '';
@@ -86,10 +99,9 @@ export function QuizView({ stage }: { stage: QuizStage }) {
   const [result, setResult] = useState<{ pts: number; frac: number } | null>(null);
   const [typing, setTyping] = useState(true);
 
-  const submit = (ids: string[], timedOut = false) => {
+  const submit = (ids: string[]) => {
     if (result || !useSim.getState().markDone(stage.id)) return;
     const st = useSim.getState();
-    const frac0 = Math.max(0, left / (stage.timer ?? 1));
     let frac: number;
     if (stage.multi) {
       const correct = options.filter((o) => o.score === 1);
@@ -99,11 +111,10 @@ export function QuizView({ stage }: { stage: QuizStage }) {
     } else {
       frac = ids.length ? options.find((o) => o.id === ids[0])!.score : 0;
     }
-    const speed = stage.timer ? (stage.multi ? 0.85 + 0.15 * frac0 : 0.7 + 0.3 * frac0) : 1;
-    const pts = Math.round(stage.points * frac * speed);
+    const pts = Math.round(stage.points * frac);
     st.addScore('ragionamento', pts, stage.points, stage.title);
     const chosen = options.filter((o) => ids.includes(o.id));
-    st.addLog('decisione', `${stage.title}: ${timedOut && !chosen.length ? 'tempo scaduto' : chosen.map((o) => o.text).join('; ')}`);
+    st.addLog('decisione', `${stage.title}: ${chosen.length ? chosen.map((o) => o.text).join('; ') : 'nessuna risposta selezionata'}`);
     st.advance(2);
     for (const o of chosen) st.applyEffects(o.effects);
     st.applyEffects(stage.after);
@@ -111,8 +122,6 @@ export function QuizView({ stage }: { stage: QuizStage }) {
     setResult({ pts, frac });
   };
 
-  // il tempo parte quando il primario ha finito di porre la domanda
-  const left = useCountdown(stage.timer, !result && !typing, () => submit(stage.multi ? picked : [], true));
   const toggle = (id: string) => {
     if (result) return;
     if (stage.multi) setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
@@ -120,7 +129,7 @@ export function QuizView({ stage }: { stage: QuizStage }) {
   };
 
   const verdict = result
-    ? `${result.frac >= 1 ? 'Ottimo!' : result.frac > 0 ? 'In parte.' : picked.length ? 'No.' : 'Tempo scaduto!'} ${stage.explanation}`
+    ? `${result.frac >= 1 ? 'Ottimo!' : result.frac > 0 ? 'In parte.' : 'No.'} ${stage.explanation}`
     : '';
   const tone = result ? (result.frac >= 1 ? 'good' : result.frac > 0 ? 'mid' : 'bad') : undefined;
 
@@ -141,12 +150,6 @@ export function QuizView({ stage }: { stage: QuizStage }) {
         <DialogueBox key="verdict" speaker={MENTOR} text={verdict} tone={tone} onTyping={setTyping}>
           <span className="rpg-score">+{result.pts} punti</span>
         </DialogueBox>
-      )}
-      {stage.timer && !result && !typing && (
-        <div className="s-timer">
-          <div className="s-timer-fill" style={{ width: `${(left / stage.timer) * 100}%` }} />
-          <span>{Math.ceil(left)} s</span>
-        </div>
       )}
       {(!typing || result) && (
         <RpgMenu cols={stage.multi ? 1 : 2} className="quiz">
@@ -223,7 +226,7 @@ export function InterviewView({ stage }: { stage: InterviewStage }) {
         talking={typing}
       />
       {lastQ && !closed && <p className="rpg-you">Tu: «{lastQ.q}»</p>}
-      <DialogueBox key={closed ? 'end' : lastQ?.id ?? 'start'} speaker={owner} text={text} onTyping={setTyping}>
+      <DialogueBox key={closed ? 'end' : lastQ?.id ?? 'start'} speaker={owner} text={text} onTyping={setTyping} voice={voiceFor(`${c.id}-${owner.name}`)}>
         {!closed && <span className="rpg-score">Domande rimaste: {left}</span>}
       </DialogueBox>
 
@@ -277,7 +280,7 @@ export function InterviewView({ stage }: { stage: InterviewStage }) {
 /* ================================================================ scheda PS */
 
 /** Minigioco a tutto schermo (portal nel contenitore .sim per ereditarne il tema). Esc chiude. */
-function GameModal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+export function GameModal({ title, onClose, children, className = '' }: { title: string; onClose: () => void; children: React.ReactNode; className?: string }) {
   useEffect(() => {
     const key = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', key);
@@ -286,7 +289,7 @@ function GameModal({ title, onClose, children }: { title: string; onClose: () =>
   const host = document.querySelector('.sim');
   if (!host) return null;
   return createPortal(
-    <div className="s-game-modal" role="dialog" aria-modal="true" aria-label={title}>
+    <div className={`s-game-modal ${className}`} role="dialog" aria-modal="true" aria-label={title}>
       <div className="s-game-modal-head">
         <b>{title}</b>
         <button className="s-x" onClick={onClose} aria-label="Chiudi">✕</button>
@@ -326,6 +329,20 @@ export function VitalsView({ stage }: { stage: VitalsStage }) {
   };
 
   const truth = { ...c.vitals, sbp: phys.sbp };
+  // temperatura, polso e respiro si prendono sul modello 3D del paziente; gli altri in una finestra
+  const in3D = (v: VitalId) => !!toolForVital(v);
+  const open3D = (v?: VitalId) =>
+    useGame.getState().openVisit({
+      mode: 'vitals',
+      patient: c.patient,
+      sprite: c.cast.patient,
+      truth,
+      vitals: all,
+      required: stage.required,
+      startTool: v ? toolForVital(v) : undefined,
+      startFocus: v,
+      onRecord: (vid, value, ok, note) => record(vid)(value, ok, note),
+    });
   const game = (v: VitalId) => {
     const done = record(v);
     switch (v) {
@@ -351,12 +368,17 @@ export function VitalsView({ stage }: { stage: VitalsStage }) {
       <StageHeader eyebrow={stage.phase} title={stage.title}>
         <SpeechBubble speaker={MENTOR} text={stage.intro} />
       </StageHeader>
+      {!closed && (
+        <button className="s-btn primary s-enter3d" onClick={() => open3D()}>
+          🏥 Visita {c.patient.name} in ambulatorio (3D)
+        </button>
+      )}
       <div className="s-vitals">
         {all.map((v) => {
           const f = findings[v];
           const req = stage.required.includes(v);
           return (
-            <button key={v} className={`s-vital ${f ? 'done' : ''} ${open === v ? 'open' : ''}`} disabled={closed} onClick={() => setOpen(open === v ? null : v)}>
+            <button key={v} className={`s-vital ${f ? 'done' : ''} ${open === v ? 'open' : ''}`} disabled={closed} onClick={() => (in3D(v) ? open3D(v) : setOpen(open === v ? null : v))}>
               <span className="ic">{VITAL_LABEL[v].icon}</span>
               <span className="lb">
                 {VITAL_LABEL[v].label}
@@ -393,7 +415,9 @@ export function VitalsView({ stage }: { stage: VitalsStage }) {
                   </li>
                 ))}
             </ul>
-            {!findings.pa && <p className="s-muted">Non hai misurato la pressione: con un deficit visivo è un dato prezioso.</p>}
+            {!findings.pa && stage.optional.includes('pa') && (
+              <p className="s-muted">Non hai misurato la pressione arteriosa: è facoltativa, ma completa la valutazione emodinamica.</p>
+            )}
           </div>
           <Continue onClick={next} />
         </>
@@ -405,8 +429,12 @@ export function VitalsView({ stage }: { stage: VitalsStage }) {
 /* ================================================================ richiesta esami */
 type PendingGame = { exam: ExamId; kind: 'ecofast' | 'doppler' | 'fondo' };
 
+/** Esami che richiedono un prelievo di sangue (fatto nell'ambulatorio 3D). */
+const BLOOD_EXAMS: ExamId[] = ['emocromo', 'biochimico', 'emogas', 'coagulazione', 'lattati', 't4', 'fivfelv', 'aldosterone', 'gruppo', 'pcr', 'coombs'];
+
 export function OrdersView({ stage }: { stage: OrdersStage }) {
   const ctx = useSimCtx();
+  const c = useSim((s) => s.caseDef)!;
   const results = useSim((s) => s.results);
   const clock = useSim((s) => s.clock);
   const phys = useSim((s) => s.phys);
@@ -420,10 +448,32 @@ export function OrdersView({ stage }: { stage: OrdersStage }) {
   const total = cart.reduce((a, e) => a + EXAMS[e].cost, 0);
   const toggle = (e: ExamId) => setCart((c) => (c.includes(e) ? c.filter((x) => x !== e) : [...c, e]));
 
-  const send = () => {
+  const proceed = () => {
     const g = cart.filter((e) => EXAMS[e].minigame).map((e) => ({ exam: e, kind: EXAMS[e].minigame! }));
     if (g.length) setGames(g);
     else dispatch();
+  };
+  const send = () => {
+    // esami del sangue: prima il prelievo dalla vena cefalica, sul modello 3D del paziente
+    const blood = cart.filter((e) => BLOOD_EXAMS.includes(e));
+    if (!blood.length) return proceed();
+    useGame.getState().openVisit({
+      mode: 'prelievo',
+      patient: c.patient,
+      sprite: c.cast.patient,
+      truth: { ...c.vitals, sbp: phys.sbp },
+      vitals: [],
+      required: [],
+      startTool: Tool.Syringe,
+      onPrelievo: (errors) => prelievoDone(errors, blood),
+    });
+  };
+  const prelievoDone = (errors: TechniqueError[], blood: ExamId[]) => {
+    const st = useSim.getState();
+    st.advance(8);
+    st.addLog('azione', `Prelievo dalla vena cefalica per: ${blood.map((e) => EXAMS[e].short).join(', ')}${errors.length ? ` (errori: ${errors.map(prelievoErrorLabel).join('; ')})` : ''}`);
+    if (errors.length) st.addScore('clinica', -Math.min(6, errors.length * 2), 0, `Prelievo: ${errors.length} errori di tecnica`);
+    proceed();
   };
 
   const dispatch = () => {
