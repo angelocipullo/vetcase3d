@@ -120,6 +120,10 @@ export function TitleScreen() {
         <a href="https://sketchfab.com/3d-models/2be37d5b9f754ed4bcc2d8f41b23a1d7" target="_blank" rel="noreferrer">
           Joseph AYYAD
         </a>{' '}
+        (CC BY 4.0, modificato) · gatto 3D: “calico-cami” di{' '}
+        <a href="https://sketchfab.com/3d-models/calico-cami-f26918cfa2964127a93177c2922972e7" target="_blank" rel="noreferrer">
+          Cartoon cat oficial
+        </a>{' '}
         (CC BY 4.0, modificato) · ambulatorio: asset CC0 di Poly Haven · Didattico, non sostituisce la formazione clinica
       </p>
     </div>

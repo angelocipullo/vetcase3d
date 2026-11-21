@@ -24,7 +24,7 @@ L'ambulatorio 3D si apre dalla scheda di PS del caso, con il paziente del caso s
 - **In finestra** (dalla scheda o dalla barra dell'ambulatorio): mucose, TRC, stato mentale, pressione Doppler.
 - **Prelievo**: inviando esami del sangue si apre la finestra del prelievo (tricotomia → laccio → disinfezione → angolo dell'ago → puntura sulla vena → aspirazione a impulsi → laccio tolto PRIMA dell'ago → cerotto). Gli errori di tecnica vanno nel diario e tolgono punti all'esame clinico.
 - I referti si leggono nella cartella clinica 🗂️, apribile anche dall'ambulatorio.
-- Modelli: **cane** = pitbull glTF (`Dog.tsx`); **gatto** = gatto semi-realistico costruito in codice (`Cat.tsx`, nessun file esterno: tronco scolpito, mantello tigrato su texture generata) con i colori del caso. Punti anatomici e inquadrature per specie in `src/three/anatomy.ts` (`setSpecies`).
+- Modelli: **cane** = pitbull glTF (`Dog.tsx`); **gatto** = “calico-cami” glTF riggato (`CatModel.tsx`, `public/models/cat.glb`, CC BY 4.0) con respiro, coda e testa animati via codice e la tinta del caso; se il file manca si usa il gatto costruito in codice (`Cat.tsx`). Punti anatomici e inquadrature per specie in `src/three/anatomy.ts` (`setSpecies`).
 
 | Strumento 3D | Interazione sul modello | Dato |
 |---|---|---|

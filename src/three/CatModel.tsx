@@ -8,8 +8,8 @@ import type { DogProps } from './Dog';
 import { FRONT_LEFT_LEG, ZONES } from './anatomy';
 
 /**
- * Gatto glTF riggato ("calico-cami" di Cartoon cat oficial, Sketchfab, CC BY 4.0), usato SOLO se il file
- * `public/models/cat.glb` è presente nella copia locale (non è versionato: vedi `catModelAvailable`).
+ * Gatto glTF riggato ("calico-cami" di Cartoon cat oficial, Sketchfab, CC BY 4.0, crediti in
+ * `public/models/CREDITS.md`). Se `public/models/cat.glb` non si carica si usa il gatto in codice (vedi `catModelAvailable`).
  * Il modello non ha animazioni: respiro, coda, testa e tremore sono fatti nel codice sulle ossa.
  * Nel file il muso guarda +Z e il fianco sinistro +X, in centimetri: lo scaliamo e lo specchiamo come il cane,
  * così il muso va verso +X e il fianco sinistro verso la camera (+Z).

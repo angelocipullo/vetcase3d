@@ -50,7 +50,7 @@ interface GameState {
   /** Audio disattivato dall'utente (preferenza salvata). */
   muted: boolean;
   visit: Visit | null;
-  /** C'è il gatto glTF locale (public/models/cat.glb, non versionato)? */
+  /** Il gatto glTF (public/models/cat.glb) è disponibile? */
   catGlb: boolean;
   tool: Tool;
   /** Lo strumento è stato appoggiato nel punto anatomico giusto (polso femorale). */
@@ -196,5 +196,5 @@ export function cameraViewFor(tool: Tool, thermoActive: boolean, placed: boolean
   return 'default';
 }
 
-// il gatto glTF è solo nella copia locale: se il file c'è lo si usa al posto del gatto costruito in codice
+// gatto glTF: se il file si carica lo si usa; altrimenti resta il gatto costruito in codice (Cat.tsx)
 void catModelAvailable().then((ok) => useGame.setState({ catGlb: ok }));
