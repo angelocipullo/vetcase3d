@@ -229,7 +229,8 @@ export function ClinicVisit() {
     <div className="clinic-visit">
       <Canvas
         shadows
-        dpr={[1, 2]}
+        dpr={[1, 1.5]}
+        performance={{ min: 0.6 }}
         frameloop={sceneReady ? 'always' : 'never'}
         camera={{ position: [cam.x, cam.y, cam.z], fov: 40, near: 0.05, far: 50 }}
         className="canvas"

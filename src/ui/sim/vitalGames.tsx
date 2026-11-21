@@ -126,6 +126,8 @@ export function PulseGame({ truth, onDone, onBeat }: GameProps & { onBeat?: () =
         next++;
         setBeat((b) => b + 1);
         onBeat?.();
+        // da telefono ogni pulsazione si sente anche come una breve vibrazione
+        if (!useGame.getState().muted) navigator.vibrate?.(35);
       }
       if (t < SECONDS) requestAnimationFrame(loop);
       else setPalpating(false);

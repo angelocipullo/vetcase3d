@@ -91,7 +91,9 @@ function Prop({
   position,
   rotationY = 0,
   align = ['center', 'min', 'center'],
-  shadows = true,
+  // gli arredi glTF ricevono le ombre ma non le proiettano: alcuni hanno decine di migliaia di
+  // triangoli (il vaso ~59.000) e ridisegnarli nella mappa d'ombra dimezzava i fotogrammi
+  shadows = false,
   onScene,
 }: {
   id: string;

@@ -35,8 +35,8 @@ function sceneryPixels(doorOpen: boolean): Px[] {
     p.push([x, y, 1, 1, '#4f9e43'], [x + 2, y, 1, 1, '#4f9e43'], [x + 1, y - 1, 1, 1, '#4f9e43']);
   }
   // vialetto di pietra dalla porta al bordo
-  p.push([35, 34, 10, 18, '#e2d2a8']);
-  for (let y = 36; y < H; y += 4) p.push([35, y, 10, 1, '#cbb98c'], [39 + ((y / 4) % 2) * 2, y - 2, 1, 2, '#cbb98c']);
+  p.push([35, 34, 10, 18, '#a8916a']);
+  for (let y = 36; y < H; y += 4) p.push([35, y, 10, 1, '#8a7552'], [39 + ((y / 4) % 2) * 2, y - 2, 1, 2, '#8a7552']);
   // ombra dell'edificio
   p.push([19, 34, 43, 1, '#4f9e43']);
   // tetto a gradini
@@ -71,7 +71,7 @@ function sceneryPixels(doorOpen: boolean): Px[] {
   } else {
     p.push([36, 24, 8, 10, '#a26a35'], [40, 24, 1, 10, '#7e4f24'], [37, 25, 2, 3, '#c98a4b'], [42, 25, 1, 3, '#c98a4b'], [42, 29, 1, 1, '#f1c40f']);
   }
-  p.push([34, 34, 12, 1, '#b9a57a']);
+  p.push([34, 34, 12, 1, '#7d6a4a']);
   // cespugli e alberelli ai lati
   for (const [x, y] of [[10, 26], [64, 25]] as const) {
     p.push([x + 2, y, 6, 2, '#3f8f3a'], [x, y + 2, 10, 5, '#3f8f3a'], [x + 1, y + 7, 8, 1, '#2f6e2b'], [x + 2, y + 1, 2, 1, '#5cb85c'], [x + 1, y + 3, 2, 1, '#5cb85c'], [x + 4, y + 8, 2, 3, '#7a5230']);

@@ -1,7 +1,7 @@
-import { ContactShadows, Environment, OrbitControls } from '@react-three/drei';
+import { AdaptiveDpr, ContactShadows, Environment, OrbitControls } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import type { ThreeEvent } from '@react-three/fiber';
-import { Suspense, useEffect, useMemo, useRef } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { audio } from '../audio/engine';
@@ -87,6 +87,8 @@ function CameraRig() {
       minPolarAngle={0.6}
       maxPolarAngle={1.55}
       onStart={() => (moving.current = false)}
+      // mentre si gira la visuale la risoluzione scende un attimo (AdaptiveDpr), poi torna nitida
+      regress
     />
   );
 }
@@ -292,7 +294,51 @@ function vitalsForAudio(): Vitals {
   return { heartRate: t.hr, heartSound, respRate: t.rr, lungSound: LungSound.Normal, temperature: t.temp };
 }
 
+/**
+ * Ombre della luce principale: la stanza è ferma e la luce pure, si muove solo il paziente (respiro, coda);
+ * la mappa d'ombra si ricalcola un fotogramma su tre invece che a ogni fotogramma.
+ */
+function ShadowThrottle() {
+  const gl = useThree((s) => s.gl);
+  const frame = useRef(0);
+  useEffect(() => {
+    gl.shadowMap.autoUpdate = false;
+    gl.shadowMap.needsUpdate = true;
+    return () => {
+      gl.shadowMap.autoUpdate = true;
+    };
+  }, [gl]);
+  useFrame(() => {
+    if (frame.current++ % 3 === 0) gl.shadowMap.needsUpdate = true;
+  });
+  return null;
+}
+
+/**
+ * Misura i fotogrammi nei primi secondi di visita (dopo un attimo di assestamento): sotto i 45 al secondo
+ * chiama `onSlow` una volta sola.
+ */
+function FpsGuard({ onSlow }: { onSlow: () => void }) {
+  const st = useRef({ t: 0, n: 0, done: false });
+  useFrame((_, dt) => {
+    const s = st.current;
+    if (s.done) return;
+    s.t += dt;
+    if (s.t < 1) return; // il primo secondo carica texture e shader
+    s.n++;
+    if (s.t >= 3) {
+      s.done = true;
+      if (s.n / (s.t - 1) < 45) onSlow();
+    }
+  });
+  return null;
+}
+
+/** Telefono o tablet: niente effetti a schermo intero, la GPU è più piccola. */
+const LOW_POWER = typeof window !== 'undefined' && (window.matchMedia?.('(pointer: coarse)').matches || window.innerWidth < 760);
+
 export function Scene() {
+  const [hq, setHq] = useState(!LOW_POWER);
   const rr = useGame((s) => s.visit?.truth.rr ?? 24);
   const species = useGame((s) => s.visit?.patient.species ?? 'cane');
   const sprite = useGame((s) => s.visit?.sprite);
@@ -410,7 +456,7 @@ export function Scene() {
         intensity={1.5}
         color="#fffaf0"
         castShadow
-        shadow-mapSize={[2048, 2048]}
+        shadow-mapSize={[1024, 1024]}
         shadow-bias={-0.0004}
         shadow-normalBias={0.02}
         shadow-camera-left={-6}
@@ -425,9 +471,14 @@ export function Scene() {
         <Clinic />
         <ShaderWarmup />
       </Suspense>
-      <Effects />
+      {/* qualità adattiva: se i fotogrammi sono pochi si spengono gli effetti a schermo intero */}
+      {hq && <FpsGuard onSlow={() => setHq(false)} />}
+      <AdaptiveDpr />
+      <ShadowThrottle />
+      {hq && <Effects />}
       <CameraRig />
-      <ContactShadows position={[0, 0.008, 0]} opacity={0.5} scale={3} blur={2} far={1.2} />
+      {/* ombra morbida sul pavimento: la stanza non si muove, basta calcolarla una volta */}
+      <ContactShadows position={[0, 0.008, 0]} opacity={0.5} scale={3} blur={2} far={1.2} frames={1} resolution={256} />
       {species === 'gatto' && sprite?.kind === 'cat' ? (
         <CatComponent
           colors={sprite}
