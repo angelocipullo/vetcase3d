@@ -6,8 +6,8 @@ import * as THREE from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { audio } from '../audio/engine';
 import { HeartSound, LungSound, SyringePhase, TechniqueError, Tool, Vitals } from '../game/types';
-import { cameraViewFor, useGame } from '../store';
-import { CAMERA_VIEWS, ZONES, distanceToVein } from './anatomy';
+import { cameraViewFor, expectedHeart, useGame } from '../store';
+import { CAMERA_VIEWS, THERMO_DEPTH, ZONES, distanceToVein } from './anatomy';
 import { PrelievoKit, PulseFingers } from './Instruments';
 import { CLINIC_HDRI, Clinic } from './Clinic';
 import { Cat } from './Cat';
@@ -175,8 +175,8 @@ function Thermometer3D() {
     if (!g) return;
     const t = useGame.getState().thermo;
     depth.current = THREE.MathUtils.damp(depth.current, t.inserted ? 1 : 0, t.inserted ? 3 : 8, dt);
-    // a riposo la punta è 6 cm fuori; inserito la sonda metallica è tutta dentro
-    g.position.copy(ZONES.rectal).addScaledVector(THERMO_AXIS, -0.07 + 0.11 * depth.current);
+    // a riposo la punta tocca la cute; inserito entra della corsa prevista per la specie
+    g.position.copy(ZONES.rectal).addScaledVector(THERMO_AXIS, THERMO_DEPTH.rest + THERMO_DEPTH.travel * depth.current);
     const shown = t.progress > 0 ? (35.5 + (target - 35.5) * (1 - Math.pow(1 - t.progress, 3))).toFixed(1) : '--.-';
     if (shown !== lastText.current) {
       lastText.current = shown;
@@ -269,6 +269,9 @@ function GameLoop() {
       const gl = THREE.MathUtils.clamp(1 - dl / 0.42, 0, 1);
       // il cuore si sente lievemente su tutto il torace
       audio.setGains(Math.max(gh, gl * 0.18), gl);
+      // ascolto che conta per il reperto: stetoscopio vicino al focolaio
+      const ms = dt * 1000;
+      g.listen(gh > 0.35 ? ms : 0, gl > 0.35 ? ms : 0);
     } else if (g.tool === Tool.Stethoscope && pointer.down) {
       audio.setGains(0, 0);
     }
@@ -285,7 +288,7 @@ function complain() {
 /** Suoni di auscultazione coerenti con il caso (FC e FR reali del paziente). */
 function vitalsForAudio(): Vitals {
   const t = useGame.getState().visit!.truth;
-  const heartSound = t.hr > t.hrRange[1] ? HeartSound.Tachycardia : t.hr < t.hrRange[0] ? HeartSound.Bradycardia : HeartSound.Normal;
+  const heartSound = expectedHeart(t);
   return { heartRate: t.hr, heartSound, respRate: t.rr, lungSound: LungSound.Normal, temperature: t.temp };
 }
 

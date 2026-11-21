@@ -13,7 +13,7 @@ import { PixelSprite } from './sim/rpg';
 import { DopplerGame, LocGame, MucousGame, PulseGame, RespGame, TrcGame } from './sim/vitalGames';
 import { SoundToggle } from './SoundToggle';
 import { VITAL_TOOL } from './clinicTools';
-import { StethoscopeHint, SyringePanel, ThermometerPanel } from './ToolPanels';
+import { ListenPrompt, StethoscopeHint, SyringePanel, ThermometerPanel } from './ToolPanels';
 
 /* =====================================================================
  * Visita nell'ambulatorio 3D, aperta da una fase del caso (scheda di PS
@@ -110,6 +110,7 @@ function ClinicHUD() {
   const [win, setWin] = useState<VitalId | null>(visit.startFocus && !VITAL_TOOL[visit.startFocus] ? visit.startFocus : null);
   const [record, setRecord] = useState(false);
   const diploma = useGame((s) => s.diploma);
+  const auscultDone = useGame((s) => !!s.auscult.heart && !!s.auscult.lungs);
 
   const pickVital = (v: VitalId) => {
     const t = VITAL_TOOL[v];
@@ -121,6 +122,7 @@ function ClinicHUD() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && useGame.getState().diploma) return useGame.getState().setDiploma(null);
+      if (e.key === 'Escape' && useGame.getState().listenPrompt) return useGame.getState().closeListen();
       if (e.key === 'Escape' && !record && !win) closeVisit();
       if ((e.key === 'g' || e.key === 'G') && !(e.target instanceof HTMLInputElement)) setGuided(!useGame.getState().guided);
     };
@@ -196,13 +198,15 @@ function ClinicHUD() {
           );
         })}
         {visit.mode === 'vitals' && (
-          <button className={`tool ${tool === Tool.Stethoscope ? 'sel' : ''}`} onClick={() => setTool(Tool.Stethoscope)}>
+          <button className={`tool ${tool === Tool.Stethoscope ? 'sel' : ''} ${auscultDone ? 'done' : ''}`} onClick={() => setTool(Tool.Stethoscope)}>
             <span className="ti">🩺</span>
             <span className="tl">Auscultazione</span>
+            {auscultDone && <em className="tool-ok">✓</em>}
           </button>
         )}
       </nav>
 
+      <ListenPrompt />
       {win && <VitalWindow v={win} onClose={() => setWin(null)} />}
       {record && <ClinicalRecord onClose={() => setRecord(false)} />}
       {diploma && (

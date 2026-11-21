@@ -99,9 +99,35 @@ class AuscultationEngine {
     if (this.ctx && this.out) this.out.gain.setTargetAtTime(muted ? 0 : 1, this.ctx.currentTime, 0.05);
   }
 
+  /**
+   * Sblocco per smartphone: va eseguito DENTRO un gesto (tocco, clic, tasto). Riprende il contesto
+   * e fa partire un suono muto di un campione, che è ciò che iOS richiede per aprire l'uscita audio.
+   * Su iPhone imposta anche la sessione come "riproduzione", così si sente anche con l'interruttore silenzioso.
+   */
+  unlockFromGesture() {
+    try {
+      const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
+      if (session && session.type !== 'playback') session.type = 'playback';
+    } catch {
+      /* API non disponibile */
+    }
+    const ctx = this.ensure();
+    if (ctx.state !== 'running') void ctx.resume();
+    const src = ctx.createBufferSource();
+    src.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+    src.connect(ctx.destination);
+    src.start(0);
+    return ctx.state === 'running';
+  }
+
+  /** Lo stato del contesto è "running" (audio udibile)? */
+  isRunning() {
+    return this.ctx?.state === 'running';
+  }
+
   /** Va chiamato da un gesto utente almeno una volta (policy autoplay iOS). */
   unlock() {
-    this.ensure();
+    this.unlockFromGesture();
     // precarica gli abbai registrati (public/audio/bark_1.mp3, bark_2.mp3)
     for (const name of BARK_SAMPLES) void this.loadSample(name);
   }
@@ -480,3 +506,17 @@ class AuscultationEngine {
 }
 
 export const audio = new AuscultationEngine();
+
+/*
+ * Sblocco automatico su smartphone: a ogni tocco/clic/tasto, finché l'audio non è attivo, si sblocca
+ * il contesto dentro il gesto. Dopo una pausa (app in background, chiamata) iOS lo sospende di nuovo:
+ * i listener restano e lo riprendono al tocco successivo.
+ */
+if (typeof window !== 'undefined') {
+  const onGesture = () => {
+    if (!audio.isRunning()) audio.unlockFromGesture();
+  };
+  for (const ev of ['touchend', 'pointerup', 'click', 'keydown'] as const) {
+    window.addEventListener(ev, onGesture, { capture: true, passive: true });
+  }
+}

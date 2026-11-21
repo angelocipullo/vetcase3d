@@ -26,6 +26,11 @@ export function catModelAvailable() {
   return available;
 }
 
+/** Curva della coda a riposo (radianti attorno all'asse laterale): base che cade, punta che risale; alzata per il termometro. */
+const TAIL_DROOP = -0.6;
+const TAIL_CURL = 0.2;
+const TAIL_LIFT = 0.9;
+
 const WORLD_UP = new THREE.Vector3(0, 1, 0);
 const WORLD_SIDE = new THREE.Vector3(0, 0, 1);
 const _q = new THREE.Quaternion();
@@ -156,14 +161,27 @@ export function CatModel({ colors, respRate, getMood, ...events }: DogProps & { 
       }
     }
 
-    // coda: oscilla; si alza per la temperatura rettale
+    // coda: a riposo scende dalla groppa e risale con la punta (a "J"); un'onda la percorre dalla base
+    // alla punta, più ampia verso la punta, con qualche guizzo; si alza per la temperatura rettale
     tailLift.current = THREE.MathUtils.damp(tailLift.current, tailUp ? 1 : 0, 3, dt);
     const lift = tailLift.current;
-    const speed = happy ? 7 : stress > 60 ? 2 : 2.5;
-    const amp = happy ? 0.22 : stress > 60 ? 0.04 : 0.08;
+    const free = 1 - 0.85 * lift;
+    const speed = happy ? 5.5 : stress > 60 ? 3.2 : 1.6;
+    const amp = happy ? 0.2 : stress > 60 ? 0.07 : 0.12;
+    // guizzo della punta ogni tanto (più spesso se il gatto è agitato)
+    const flickPeriod = stress > 60 ? 2.2 : 4.5;
+    const ph = (t % flickPeriod) / flickPeriod;
+    const flick = ph > 0.86 ? Math.sin(((ph - 0.86) / 0.14) * Math.PI) : 0;
+    const n = bones.tail.length;
     bones.tail.forEach((b, i) => {
-      if (i === 0) rotateWorld(b, WORLD_SIDE, 0.9 * lift);
-      rotateWorld(b, WORLD_UP, Math.sin(t * speed - i * 0.6) * amp * (1 - 0.8 * lift));
+      const f = i / Math.max(1, n - 1);
+      // forma: la base cade, le ultime vertebre risalgono
+      const bend = i === 0 ? TAIL_DROOP : i < n * 0.4 ? TAIL_DROOP * 0.15 : TAIL_CURL;
+      rotateWorld(b, WORLD_SIDE, bend * free + (i === 0 ? TAIL_LIFT * lift : 0));
+      // onda laterale e un po' verticale, ritardata lungo la coda
+      const wave = Math.sin(t * speed - i * 0.55) * amp * (0.35 + 0.9 * f);
+      rotateWorld(b, WORLD_UP, (wave + flick * 0.35 * f * f) * free);
+      rotateWorld(b, WORLD_SIDE, Math.sin(t * speed * 0.6 - i * 0.5 + 1.3) * 0.05 * f * free);
     });
 
     // testa: piccolo dondolio da fermo; immobile mentre si visita

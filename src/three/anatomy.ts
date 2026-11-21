@@ -23,7 +23,16 @@ export const DOG_TRANSFORM = { scale: 0.65, offsetX: -0.35 };
 export type CameraView = 'default' | 'syringe' | 'thermometer' | 'femoral' | 'resp';
 type View = { pos: Vector3; target: Vector3 };
 /** Avambraccio anteriore sinistro (tra gomito e carpo): centro, raggio, lunghezza; `cuffY` = altezza del laccio. */
-type Leg = { x: number; z: number; radius: number; length: number; y: number; cuffY: number };
+type Leg = {
+  x: number;
+  z: number;
+  radius: number;
+  length: number;
+  y: number;
+  cuffY: number;
+  /** Laccio ellittico misurato sulla mesh (centro e semiassi all'asse del tubo), se la zampa non è circolare. */
+  cuff?: { x: number; z: number; rx: number; rz: number };
+};
 
 interface Anatomy {
   zones: Record<'heart' | 'lungs' | 'rectal' | 'femoral', Vector3>;
@@ -31,7 +40,11 @@ interface Anatomy {
   /** Vena cefalica dall'alto in basso, appena sopra la faccia craniale (+X) dell'avambraccio. */
   vein: [number, number, number][];
   views: Record<CameraView, View>;
+  /** Termometro lungo il suo asse, dal punto rettale: punta a riposo (sulla cute) e quanto entra. */
+  thermo?: Thermo;
 }
+type Thermo = { rest: number; travel: number };
+const THERMO_DEFAULT: Thermo = { rest: -0.07, travel: 0.11 };
 
 const v = (x: number, y: number, z: number) => new Vector3(x, y, z);
 const view = (p: [number, number, number], t: [number, number, number]): View => ({ pos: v(...p), target: v(...t) });
@@ -98,13 +111,16 @@ ANATOMY.gattoGlb = {
     femoral: v(-0.52, 0.56, 0.2),
   },
   // avambraccio sinistro: gomito (0,325; 0,425; 0,126) → carpo (0,311; 0,173; 0,107), faccia craniale x 0,385–0,40
-  leg: { x: 0.325, z: 0.112, radius: 0.065, length: 0.2, y: 0.3, cuffY: 0.41 },
+  // sezione a y 0,38: x 0,256–0,40, z 0,033–0,16 → laccio ellittico attorno, sopra la vena
+  leg: { x: 0.325, z: 0.112, radius: 0.065, length: 0.2, y: 0.3, cuffY: 0.385, cuff: { x: 0.33, z: 0.097, rx: 0.083, rz: 0.078 } },
   vein: [
     [0.402, 0.39, 0.115],
     [0.396, 0.32, 0.113],
     [0.39, 0.25, 0.11],
     [0.385, 0.19, 0.108],
   ],
+  // groppa a x ≈ −0,77: la punta entra di 4 cm e la sonda resta per metà fuori
+  thermo: { rest: -0.07, travel: 0.04 },
   views: {
     default: view([-0.05, 1.25, 3.6], [-0.05, 0.6, 0]),
     syringe: view([1.0, 0.48, 0.95], [0.33, 0.3, 0.11]),
@@ -121,6 +137,9 @@ export const ZONES = {
   rectal: new Vector3(),
   femoral: new Vector3(),
 };
+
+/** Termometro della specie corrente (vedi Anatomy.thermo). */
+export const THERMO_DEPTH: Thermo = { ...THERMO_DEFAULT };
 
 /** Avambraccio anteriore sinistro della specie corrente (collider del prelievo, laccio). */
 export const FRONT_LEFT_LEG: Leg = { x: 0, z: 0, radius: 0, length: 0, y: 0, cuffY: 0 };
@@ -146,7 +165,8 @@ export function setSpecies(s: Species, glb = false) {
   current = key;
   const a = ANATOMY[key] ?? ANATOMY.gatto;
   for (const k of Object.keys(ZONES) as (keyof typeof ZONES)[]) ZONES[k].copy(a.zones[k]);
-  Object.assign(FRONT_LEFT_LEG, a.leg);
+  Object.assign(FRONT_LEFT_LEG, { cuff: undefined }, a.leg);
+  Object.assign(THERMO_DEPTH, a.thermo ?? THERMO_DEFAULT);
   VEIN_CURVE.points.forEach((p, i) => p.set(...a.vein[i]));
   VEIN_SAMPLES = VEIN_CURVE.getSpacedPoints(80);
   for (const k of Object.keys(CAMERA_VIEWS) as CameraView[]) {

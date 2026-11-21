@@ -14,6 +14,14 @@ type Px = [x: number, y: number, w: number, h: number, fill: string];
 /** Palette condivisa con gli sprite RPG (contorno #1d1b2c). */
 const K = '#1d1b2c';
 
+/** Caratteri pixel 5×7 per la scritta sul tetto. */
+const GLYPHS: Record<string, string[]> = {
+  O: ['.###.', '#...#', '#...#', '#...#', '#...#', '#...#', '.###.'],
+  V: ['#...#', '#...#', '#...#', '#...#', '.#.#.', '.#.#.', '..#..'],
+  U: ['#...#', '#...#', '#...#', '#...#', '#...#', '#...#', '.###.'],
+  D: ['####.', '#...#', '#...#', '#...#', '#...#', '#...#', '####.'],
+};
+
 function sceneryPixels(doorOpen: boolean): Px[] {
   const p: Px[] = [];
   // cielo a fasce e nuvole
@@ -34,6 +42,19 @@ function sceneryPixels(doorOpen: boolean): Px[] {
   // tetto a gradini
   p.push([17, 11, 46, 2, '#b8433f'], [19, 9, 42, 2, '#c95450'], [22, 7, 36, 2, '#d8635d'], [26, 5, 28, 2, '#e07a73']);
   p.push([17, 13, 46, 1, '#7d2b28']);
+  // scritta OVUD sul tetto: lettere pixel 5×7 in grassetto (6 px), blu con ombra scura
+  const word = 'OVUD';
+  const x0 = Math.floor((W - (word.length * 7 - 1)) / 2);
+  const lit: [number, number][] = [];
+  [...word].forEach((ch, i) => {
+    GLYPHS[ch].forEach((row, ry) => {
+      for (let rx = 0; rx < 5; rx++) {
+        if (row[rx] === '#') lit.push([x0 + i * 7 + rx, 5 + ry]);
+      }
+    });
+  });
+  for (const [x, y] of lit) p.push([x + 1, y + 1, 2, 1, '#16306b']);
+  for (const [x, y] of lit) p.push([x, y, 2, 1, '#2f7bf0']);
   // facciata
   p.push([20, 14, 40, 20, '#f3e8d2'], [20, 31, 40, 3, '#d9c7a3'], [20, 14, 40, 1, '#e5d6b8']);
   // insegna con croce
@@ -59,10 +80,10 @@ function sceneryPixels(doorOpen: boolean): Px[] {
   return p;
 }
 
-/** Medico visto di spalle (7×10), due fotogrammi di camminata: calvo, camice bianco. */
+/** Medico visto di spalle (7×10), due fotogrammi di camminata: capelli biondi rasati, camice bianco. */
 const WALK_FRAMES: string[][] = [
-  ['..sss..', '.sssss.', '.sssss.', '..sss..', 'WWWWWWW', 'wWWWWWw', 'sWWWWWs', '.WWWWW.', '.pp.pp.', '.bb....'],
-  ['..sss..', '.sssss.', '.sssss.', '..sss..', 'WWWWWWW', 'wWWWWWw', 'sWWWWWs', '.WWWWW.', '.pp.pp.', '....bb.'],
+  ['..hhh..', '.sssss.', '.sssss.', '..sss..', 'WWWWWWW', 'wWWWWWw', 'sWWWWWs', '.WWWWW.', '.pp.pp.', '.bb....'],
+  ['..hhh..', '.sssss.', '.sssss.', '..sss..', 'WWWWWWW', 'wWWWWWw', 'sWWWWWs', '.WWWWW.', '.pp.pp.', '....bb.'],
 ];
 const PLAYER_PAL: Record<string, string> = { h: '#c49a4a', s: '#f3d2b3', W: '#f8f9fa', w: '#ced4da', p: '#343a40', b: K };
 

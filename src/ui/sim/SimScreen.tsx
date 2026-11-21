@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useGame } from '../../store';
 import { fmtClock, fmtElapsed, useSim } from '../../sim/store';
 import { Stage } from '../../sim/types';
@@ -46,7 +46,6 @@ export function SimScreen() {
   const [recordOpen, setRecordOpen] = useState(false);
   // referti già visti aprendo la cartella: il badge mostra solo i nuovi
   const [seen, setSeen] = useState(0);
-  const phases = useMemo(() => (c ? [...new Set(c.stages.map((s) => s.phase))] : []), [c]);
   const ready = readyCount(results, clock);
   const unseen = Math.max(0, ready - seen);
   const openRecord = () => {
@@ -72,16 +71,11 @@ export function SimScreen() {
 
   if (!c) return null;
   const stage = c.stages[stageIdx];
-  const phaseIdx = phases.indexOf(stage.phase);
 
   return (
     <div className="sim">
       <header className="s-top">
         <button className="s-x" onClick={() => useGame.getState().toMenu()} aria-label="Esci" title="Torna al titolo">←</button>
-        <div className="s-top-title">
-          <b>PS · {c.patient.name}</b>
-          <span>{c.title}</span>
-        </div>
         <div className="s-clock">
           <b>{fmtClock(c, clock)}</b>
           <span>T+{fmtElapsed(clock)}</span>
@@ -93,11 +87,6 @@ export function SimScreen() {
           {unseen > 0 && <em className="s-badge">{unseen}</em>}
         </button>
       </header>
-      <ol className="s-phases" aria-label="Fasi del caso">
-        {phases.map((p, i) => (
-          <li key={p} className={i < phaseIdx ? 'done' : i === phaseIdx ? 'cur' : ''}>{p}</li>
-        ))}
-      </ol>
       <div className="s-body">
         <aside className="s-side">
           <PatientBanner onOpenRecord={openRecord} />

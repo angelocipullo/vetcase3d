@@ -120,12 +120,19 @@ export function PrelievoKit() {
       <mesh geometry={vein} renderOrder={2}>
         <meshToonMaterial color="#3b5bdb" transparent opacity={veinOpacity} depthTest={false} />
       </mesh>
-      {s.tourniquet && (
-        <mesh position={[L.x, L.cuffY, L.z]} rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[L.radius + 0.008, 0.012, 10, 36]} />
-          <meshToonMaterial color="#fa5252" />
-        </mesh>
-      )}
+      {s.tourniquet &&
+        (L.cuff ? (
+          // anello ellittico: scala il toro sul piano orizzontale, spessore del tubo invariato a vista
+          <mesh position={[L.cuff.x, L.cuffY, L.cuff.z]} rotation={[Math.PI / 2, 0, 0]} scale={[L.cuff.rx / 0.08, L.cuff.rz / 0.08, 1]}>
+            <torusGeometry args={[0.08, 0.011, 10, 40]} />
+            <meshToonMaterial color="#fa5252" />
+          </mesh>
+        ) : (
+          <mesh position={[L.x, L.cuffY, L.z]} rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[L.radius + 0.008, 0.012, 10, 36]} />
+            <meshToonMaterial color="#fa5252" />
+          </mesh>
+        ))}
       <Syringe3D />
     </>
   );

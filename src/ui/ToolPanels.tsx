@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { audio } from '../audio/engine';
-import { SyringePhase, TechniqueError, Tool } from '../game/types';
-import { useGame } from '../store';
+import { HeartSound, LungSound, SyringePhase, TechniqueError, Tool } from '../game/types';
+import { HEART_LABEL, LISTEN_REQUIRED_MS, LUNG_LABEL, useGame } from '../store';
 
 function useRaf(cb: (dt: number) => void, active: boolean) {
   const ref = useRef(cb);
@@ -22,10 +22,45 @@ function useRaf(cb: (dt: number) => void, active: boolean) {
 
 /** Auscultazione libera: cuore e polmoni del paziente, alla FC e FR del caso. */
 export function StethoscopeHint() {
+  const a = useGame((s) => s.auscult);
+  const heart = Math.min(1, a.heartMs / LISTEN_REQUIRED_MS);
+  const lungs = Math.min(1, a.lungsMs / LISTEN_REQUIRED_MS);
   return (
     <div className="panel compact">
       <p className="panel-title">🩺 Tieni premuto sul torace e trascina</p>
+      <div className="meters">
+        <Meter label={`❤️ Cuore${a.heart ? ` · ${HEART_LABEL[a.heart]}` : ''}`} value={heart} color="var(--red)" />
+        <Meter label={`🫁 Polmoni${a.lungs ? ` · ${LUNG_LABEL[a.lungs]}` : ''}`} value={lungs} color="var(--blue)" />
+      </div>
       <p className="hint">Usa le cuffie. Il cuore si sente meglio in basso, subito dietro il gomito; i polmoni più in alto e indietro.</p>
+    </div>
+  );
+}
+
+/** Dopo abbastanza ascolto: cosa hai sentito al cuore / ai polmoni? */
+export function ListenPrompt() {
+  const prompt = useGame((s) => s.listenPrompt);
+  if (!prompt) return null;
+  const { answerListen, closeListen } = useGame.getState();
+  const options =
+    prompt === 'heart'
+      ? (Object.keys(HEART_LABEL) as HeartSound[]).map((k) => ({ k, label: HEART_LABEL[k] }))
+      : (Object.keys(LUNG_LABEL) as LungSound[]).map((k) => ({ k, label: LUNG_LABEL[k] }));
+  return (
+    <div className="modal-backdrop listen-prompt">
+      <div className="modal pop">
+        <h3>{prompt === 'heart' ? '❤️ Cosa hai sentito al cuore?' : '🫁 Cosa hai sentito ai polmoni?'}</h3>
+        <div className="choice-grid">
+          {options.map((o) => (
+            <button key={o.k} className="choice" onClick={() => answerListen(o.k)}>
+              {o.label}
+            </button>
+          ))}
+        </div>
+        <button className="link listen-again" onClick={closeListen}>
+          Voglio riascoltare
+        </button>
+      </div>
     </div>
   );
 }
