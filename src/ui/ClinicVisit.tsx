@@ -109,6 +109,7 @@ function ClinicHUD() {
   const { setTool, setGuided, closeVisit } = useGame.getState();
   const [win, setWin] = useState<VitalId | null>(visit.startFocus && !VITAL_TOOL[visit.startFocus] ? visit.startFocus : null);
   const [record, setRecord] = useState(false);
+  const diploma = useGame((s) => s.diploma);
 
   const pickVital = (v: VitalId) => {
     const t = VITAL_TOOL[v];
@@ -119,6 +120,7 @@ function ClinicHUD() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && useGame.getState().diploma) return useGame.getState().setDiploma(null);
       if (e.key === 'Escape' && !record && !win) closeVisit();
       if ((e.key === 'g' || e.key === 'G') && !(e.target instanceof HTMLInputElement)) setGuided(!useGame.getState().guided);
     };
@@ -189,7 +191,6 @@ function ClinicHUD() {
             <button key={v} className={`tool ${sel ? 'sel' : ''} ${findings[v] ? 'done' : ''}`} onClick={() => pickVital(v)} title={VITAL_LABEL[v].label}>
               <span className="ti">{VITAL_LABEL[v].icon}</span>
               <span className="tl">{VITAL_LABEL[v].label.replace(' (Doppler)', '').replace('Tempo di riempimento capillare', 'TRC').replace('Stato mentale (LOC)', 'Stato mentale')}</span>
-              {!VITAL_TOOL[v] && <em className="tool-win" title="Si apre in una finestra">⧉</em>}
               {findings[v] && <em className="tool-ok">✓</em>}
             </button>
           );
@@ -204,6 +205,12 @@ function ClinicHUD() {
 
       {win && <VitalWindow v={win} onClose={() => setWin(null)} />}
       {record && <ClinicalRecord onClose={() => setRecord(false)} />}
+      {diploma && (
+        <div className="diploma-view" role="dialog" aria-label="Pergamena di laurea" onClick={() => useGame.getState().setDiploma(null)}>
+          <img src={diploma} alt="Pergamena di laurea in Medicina Veterinaria" onClick={(e) => e.stopPropagation()} />
+          <button className="diploma-close" aria-label="Chiudi" onClick={() => useGame.getState().setDiploma(null)}>✕</button>
+        </div>
+      )}
     </div>
   );
 }

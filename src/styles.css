@@ -417,7 +417,6 @@ h1, h2, h3, h4, .brand, .lcd, .score { font-family: 'Baloo 2', 'Nunito', sans-se
 .clinic-hud .tool { position: relative; }
 .clinic-hud .tool.done .ti { opacity: 0.55; }
 .clinic-hud .tool-ok { position: absolute; top: 4px; right: 6px; font-style: normal; font-size: 12px; font-weight: 900; color: #fff; background: #2b8a3e; border-radius: 999px; width: 17px; height: 17px; display: grid; place-items: center; }
-.clinic-hud .tool-win { position: absolute; bottom: 3px; right: 6px; font-style: normal; font-size: 12px; font-weight: 900; color: var(--ink-soft); }
 .clinic-hud .pill.clinic-done { background: #2b8a3e; color: #fff; }
 /* i minigiochi della scheda PS (stile del simulatore, scuro) dentro il pannello dell'ambulatorio */
 .panel.clinic-game { background: #0b1f26; color: #e6f2ef; max-height: 52vh; overflow-y: auto; }
@@ -429,3 +428,8 @@ h1, h2, h3, h4, .brand, .lcd, .score { font-family: 'Baloo 2', 'Nunito', sans-se
   .clinic-hud .tool .ti { font-size: 22px; }
   .panel.clinic-game { max-height: none; }
 }
+
+/* pergamena di laurea aperta a schermo intero */
+.diploma-view { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: rgba(10, 14, 18, 0.78); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); animation: pop 0.2s ease-out; pointer-events: auto; }
+.diploma-view img { max-width: min(92vw, 560px); max-height: 88vh; width: auto; height: auto; border: 10px solid #2b2b2b; border-radius: 4px; box-shadow: 0 0 0 2px #6b6b6b, 0 24px 60px rgba(0, 0, 0, 0.6); background: #f8f6ee; }
+.diploma-close { position: absolute; top: max(14px, env(safe-area-inset-top)); right: 14px; width: 40px; height: 40px; border-radius: 50%; border: 0; cursor: pointer; background: rgba(255, 255, 255, 0.9); font-size: 18px; font-weight: 900; color: #2b2b2b; }

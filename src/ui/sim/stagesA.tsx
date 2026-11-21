@@ -207,6 +207,12 @@ export function InterviewView({ stage }: { stage: InterviewStage }) {
     setClosed(true);
   };
 
+  // dopo ogni domanda la pagina torna su, alla domanda e alla risposta del proprietario (utile su telefono)
+  useEffect(() => {
+    if (!lastQ) return;
+    document.querySelector('.s-main .rpg-you')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [lastQ?.id]);
+
   const text = closed
     ? 'Grazie dottore. Ditemi voi cosa fare adesso…'
     : lastQ

@@ -379,6 +379,45 @@ class AuscultationEngine {
     }
   }
 
+  /**
+   * Miagolio sintetizzato ("mi-a-o"): voce con armoniche che sale e poi scende, con una formante
+   * che si apre sulla "a" e si chiude sulla "o", e un leggero vibrato. `plaintive` = lamentoso (stress).
+   */
+  meow(plaintive = false) {
+    const ctx = this.ensure();
+    const t = ctx.currentTime;
+    const dur = plaintive ? 0.9 : 0.62;
+    const f0 = (plaintive ? 520 : 600) * (0.92 + Math.random() * 0.16);
+    const o = ctx.createOscillator();
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(f0 * 0.85, t);
+    o.frequency.linearRampToValueAtTime(f0 * 1.35, t + dur * 0.35);
+    o.frequency.linearRampToValueAtTime(f0 * (plaintive ? 0.8 : 0.95), t + dur);
+    // vibrato
+    const lfo = ctx.createOscillator();
+    lfo.frequency.value = 6.5;
+    const lfoGain = ctx.createGain();
+    lfoGain.gain.value = f0 * 0.02;
+    lfo.connect(lfoGain).connect(o.frequency);
+    // formante: "i" stretta → "a" aperta → "o" chiusa
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.Q.value = 3;
+    bp.frequency.setValueAtTime(1800, t);
+    bp.frequency.linearRampToValueAtTime(1300, t + dur * 0.4);
+    bp.frequency.linearRampToValueAtTime(800, t + dur);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.32, t + 0.06);
+    g.gain.setValueAtTime(0.32, t + dur * 0.6);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(bp).connect(g).connect(this.out!);
+    o.start(t);
+    lfo.start(t);
+    o.stop(t + dur + 0.02);
+    lfo.stop(t + dur + 0.02);
+  }
+
   whine() {
     const ctx = this.ensure();
     const t = ctx.currentTime;

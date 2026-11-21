@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { audio } from './audio/engine';
 import { SyringePhase, TechniqueError, Tool } from './game/types';
 import { setSpecies, type CameraView } from './three/anatomy';
+import { catModelAvailable } from './three/CatModel';
 import { SIM_CASES } from './sim/cases';
 import { useSim } from './sim/store';
 import type { SimPatient, SpriteSpec, VitalId, VitalTruth } from './sim/types';
@@ -49,6 +50,8 @@ interface GameState {
   /** Audio disattivato dall'utente (preferenza salvata). */
   muted: boolean;
   visit: Visit | null;
+  /** C'è il gatto glTF locale (public/models/cat.glb, non versionato)? */
+  catGlb: boolean;
   tool: Tool;
   /** Lo strumento è stato appoggiato nel punto anatomico giusto (polso femorale). */
   placed: boolean;
@@ -63,6 +66,8 @@ interface GameState {
   /** Errori tecnici della procedura in corso (prelievo, termometro). */
   errors: TechniqueError[];
   toast: { text: string; id: number } | null;
+  /** Pergamena di laurea aperta a schermo intero (immagine PNG), o null. */
+  diploma: string | null;
 
   /** Simulatore clinico a fasi (caso per id, default il primo). */
   startSim: (caseId?: string) => void;
@@ -77,6 +82,7 @@ interface GameState {
   addStress: (n: number) => void;
   pet: () => void;
   showToast: (text: string) => void;
+  setDiploma: (img: string | null) => void;
   addError: (e: TechniqueError) => void;
   patchSyringe: (p: Partial<SyringeState>) => void;
   patchThermo: (p: Partial<GameState['thermo']>) => void;
@@ -104,6 +110,7 @@ export const useGame = create<GameState>((set, get) => ({
   sceneReady: false,
   muted: audio.isMuted(),
   visit: null,
+  catGlb: false,
   tool: Tool.Hand,
   placed: false,
   stress: 20,
@@ -114,6 +121,7 @@ export const useGame = create<GameState>((set, get) => ({
   pulseBeat: 0,
   errors: [],
   toast: null,
+  diploma: null,
 
   startSim: (caseId) => {
     const c = SIM_CASES.find((x) => x.id === caseId) ?? SIM_CASES[0];
@@ -130,7 +138,7 @@ export const useGame = create<GameState>((set, get) => ({
 
   openVisit: (v) => {
     // punti anatomici e inquadrature della specie, prima che la scena 3D venga montata
-    setSpecies(v.patient.species);
+    setSpecies(v.patient.species, get().catGlb);
     set({
       visit: v,
       tool: Tool.Hand,
@@ -144,7 +152,8 @@ export const useGame = create<GameState>((set, get) => ({
   },
   closeVisit: () => {
     audio.stop();
-    set({ visit: null, tool: Tool.Hand, placed: false });
+    document.body.style.cursor = '';
+    set({ visit: null, tool: Tool.Hand, placed: false, diploma: null });
   },
 
   setTool: (t) => {
@@ -163,6 +172,7 @@ export const useGame = create<GameState>((set, get) => ({
     set({ happyUntil: performance.now() + 2500 });
   },
   showToast: (text) => set({ toast: { text, id: ++toastId } }),
+  setDiploma: (diploma) => set({ diploma }),
   addError: (e) => set((s) => ({ errors: [...s.errors, e] })),
   patchSyringe: (p) => set((s) => ({ syringe: { ...s.syringe, ...p } })),
   patchThermo: (p) => set((s) => ({ thermo: { ...s.thermo, ...p } })),
@@ -185,3 +195,6 @@ export function cameraViewFor(tool: Tool, thermoActive: boolean, placed: boolean
   if (tool === Tool.Resp) return 'resp';
   return 'default';
 }
+
+// il gatto glTF è solo nella copia locale: se il file c'è lo si usa al posto del gatto costruito in codice
+void catModelAvailable().then((ok) => useGame.setState({ catGlb: ok }));

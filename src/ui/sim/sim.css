@@ -522,6 +522,9 @@
 .rpg-alert > div:last-child { display: flex; flex-direction: column; gap: 10px; }
 .rpg-alert-face { flex-shrink: 0; padding: 4px; border-radius: 10px; background: #2c5662; border: 3px solid #1d1b2c; }
 @media (max-width: 520px) {
+  /* pulsante Continua compatto su telefono */
+  .s-continue { bottom: 6px; }
+  .s-continue .s-btn { min-width: 0; padding: 9px 16px; font-size: 14px; border-radius: 10px; box-shadow: 0 2px 0 #0ca678; }
   .rpg-scene { min-height: 140px; padding: 10px 10px 6px; }
   .rpg-actor .px-sprite { width: 96px; height: 96px; }
   .rpg-actor.small .px-sprite { width: 64px; height: 64px; }

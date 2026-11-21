@@ -165,7 +165,8 @@ export function SyringePanel() {
       setHolding(false);
       g().addError(TechniqueError.VeinCollapsed);
       g().addStress(10);
-      audio.whine();
+      if (g().visit?.patient.species === 'gatto') audio.meow(true);
+      else audio.whine();
       g().showToast('Vena collassata! Hai aspirato troppo forte. Ripungi');
       g().patchSyringe({ phase: SyringePhase.Insert, fill: 0, pressure: 0, insertPoint: undefined });
       return;

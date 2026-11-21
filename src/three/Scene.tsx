@@ -11,6 +11,7 @@ import { CAMERA_VIEWS, ZONES, distanceToVein } from './anatomy';
 import { PrelievoKit, PulseFingers } from './Instruments';
 import { CLINIC_HDRI, Clinic } from './Clinic';
 import { Cat } from './Cat';
+import { CatModel } from './CatModel';
 import { Dog, dogBark } from './Dog';
 import { Effects } from './Effects';
 
@@ -258,7 +259,7 @@ function GameLoop() {
     const g = useGame.getState();
     if (!g.visit) return;
     if (g.stress > 0 && g.tool !== Tool.Syringe) g.addStress(-dt * 1.2);
-    if (last.current.stress < 75 && g.stress >= 75) audio.whine();
+    if (last.current.stress < 75 && g.stress >= 75) complain();
     last.current.stress = g.stress;
 
     if (g.tool === Tool.Stethoscope && pointer.down && pointer.over) {
@@ -275,6 +276,12 @@ function GameLoop() {
   return null;
 }
 
+/** Lamento quando il paziente è stressato o sente dolore: miagolio lamentoso nel gatto, guaito nel cane. */
+function complain() {
+  if (useGame.getState().visit?.patient.species === 'gatto') audio.meow(true);
+  else audio.whine();
+}
+
 /** Suoni di auscultazione coerenti con il caso (FC e FR reali del paziente). */
 function vitalsForAudio(): Vitals {
   const t = useGame.getState().visit!.truth;
@@ -286,6 +293,8 @@ export function Scene() {
   const rr = useGame((s) => s.visit?.truth.rr ?? 24);
   const species = useGame((s) => s.visit?.patient.species ?? 'cane');
   const sprite = useGame((s) => s.visit?.sprite);
+  const catGlb = useGame((s) => s.catGlb);
+  const CatComponent = catGlb ? CatModel : Cat;
 
   const updatePointer = (e: ThreeEvent<PointerEvent>) => {
     pointer.over = true;
@@ -305,8 +314,12 @@ export function Scene() {
       case Tool.Hand:
         g.pet();
         if (Math.random() < 0.35) {
-          audio.bark();
-          dogBark();
+          // il gatto miagola, il cane abbaia (con l'animazione)
+          if (g.visit?.patient.species === 'gatto') audio.meow();
+          else {
+            audio.bark();
+            dogBark();
+          }
         }
         break;
       case Tool.Stethoscope:
@@ -346,7 +359,7 @@ export function Scene() {
         if (err) {
           g.addError(err);
           g.addStress(14);
-          audio.whine();
+          complain();
           const msg: Record<string, string> = {
             [TechniqueError.MissedVein]: s.tourniquet ? 'Vena mancata! Mira esattamente sulla linea blu' : 'Vena mancata! Senza laccio la vena non è distesa',
             [TechniqueError.TransfixedVein]: 'Ago troppo inclinato: hai trapassato la vena',
@@ -413,7 +426,7 @@ export function Scene() {
       <CameraRig />
       <ContactShadows position={[0, 0.008, 0]} opacity={0.5} scale={3} blur={2} far={1.2} />
       {species === 'gatto' && sprite?.kind === 'cat' ? (
-        <Cat
+        <CatComponent
           colors={sprite}
           respRate={rr}
           getMood={() => {

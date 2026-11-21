@@ -14,6 +14,8 @@ import { CatmullRomCurve3, Vector3 } from 'three';
  */
 
 export type Species = 'cane' | 'gatto';
+/** Anatomia usata: per il gatto ce n'è una per il modello in codice e una per il glTF locale. */
+type AnatomyKey = Species | 'gattoGlb';
 
 /** Posizionamento del modello glTF del cane nella scena (vedi Dog.tsx). */
 export const DOG_TRANSFORM = { scale: 0.65, offsetX: -0.35 };
@@ -34,7 +36,7 @@ interface Anatomy {
 const v = (x: number, y: number, z: number) => new Vector3(x, y, z);
 const view = (p: [number, number, number], t: [number, number, number]): View => ({ pos: v(...p), target: v(...t) });
 
-const ANATOMY: Record<Species, Anatomy> = {
+const ANATOMY: Record<Species, Anatomy> & Partial<Record<'gattoGlb', Anatomy>> = {
   cane: {
     zones: {
       // cuore: emitorace sinistro, terzo inferiore del torace subito dietro il gomito
@@ -87,6 +89,31 @@ const ANATOMY: Record<Species, Anatomy> = {
   },
 };
 
+// gatto glTF locale (CatModel.tsx), misurato sulla mesh in posa di riposo con window.__catSlice/__catBones
+ANATOMY.gattoGlb = {
+  zones: {
+    heart: v(0.2, 0.55, 0.2),
+    lungs: v(-0.02, 0.72, 0.21),
+    rectal: v(-0.7, 0.8, 0),
+    femoral: v(-0.52, 0.56, 0.2),
+  },
+  // avambraccio sinistro: gomito (0,325; 0,425; 0,126) → carpo (0,311; 0,173; 0,107), faccia craniale x 0,385–0,40
+  leg: { x: 0.325, z: 0.112, radius: 0.065, length: 0.2, y: 0.3, cuffY: 0.41 },
+  vein: [
+    [0.402, 0.39, 0.115],
+    [0.396, 0.32, 0.113],
+    [0.39, 0.25, 0.11],
+    [0.385, 0.19, 0.108],
+  ],
+  views: {
+    default: view([-0.05, 1.25, 3.6], [-0.05, 0.6, 0]),
+    syringe: view([1.0, 0.48, 0.95], [0.33, 0.3, 0.11]),
+    thermometer: view([-1.75, 1.15, 1.0], [-0.7, 0.8, 0]),
+    femoral: view([-0.25, 0.85, 1.15], [-0.52, 0.55, 0.18]),
+    resp: view([0.05, 1.0, 2.3], [0.05, 0.7, 0.1]),
+  },
+};
+
 /* oggetti "vivi" della specie corrente (riscritti da setSpecies) */
 export const ZONES = {
   heart: new Vector3(),
@@ -110,13 +137,14 @@ export const CAMERA_VIEWS = {
   resp: { pos: new Vector3(), target: new Vector3() },
 } as Record<CameraView, View>;
 
-let current: Species | null = null;
+let current: AnatomyKey | null = null;
 
-/** Imposta la specie del paziente sul tavolo (prima di montare la scena 3D). */
-export function setSpecies(s: Species) {
-  if (s === current) return;
-  current = s;
-  const a = ANATOMY[s];
+/** Imposta la specie del paziente sul tavolo (prima di montare la scena 3D); `glb` = gatto glTF locale. */
+export function setSpecies(s: Species, glb = false) {
+  const key: AnatomyKey = s === 'gatto' && glb ? 'gattoGlb' : s;
+  if (key === current) return;
+  current = key;
+  const a = ANATOMY[key] ?? ANATOMY.gatto;
   for (const k of Object.keys(ZONES) as (keyof typeof ZONES)[]) ZONES[k].copy(a.zones[k]);
   Object.assign(FRONT_LEFT_LEG, a.leg);
   VEIN_CURVE.points.forEach((p, i) => p.set(...a.vein[i]));
@@ -134,7 +162,7 @@ export function distanceToVein(p: Vector3): number {
 }
 
 export function currentSpecies(): Species {
-  return current ?? 'cane';
+  return current === 'cane' || current === null ? 'cane' : 'gatto';
 }
 
 setSpecies('cane');
