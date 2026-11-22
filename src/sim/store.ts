@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { EXAMS, FLUID_LABEL, DRUGS } from './exams';
 import { K_MAX_SAFE, kInfusionRate, tick } from './physiology';
+import { num } from './format';
 import {
   DrugId,
   Effect,
@@ -324,12 +325,12 @@ export const useSim = create<SimState>((set, get) => ({
     if (rate > K_MAX_SAFE + 1e-6) {
       const safeRate = Math.floor((K_MAX_SAFE * kg * 1000) / Math.max(1, f.kclMeqL + (f.fluid === 'rl' ? 4 : 0)));
       set({ therapy: { ...th, fluids: { ...f, rateMlH: safeRate } } });
-      s.addScore('terapia', -10, 0, `Infusione di K⁺ a ${rate.toFixed(2)} mEq/kg/h (> 0,5)`);
-      s.addLog('evento', `Aritmia ventricolare durante infusione rapida di KCl (${rate.toFixed(2)} mEq/kg/h). Velocità ridotta a ${safeRate} ml/h.`);
+      s.addScore('terapia', -10, 0, `Infusione di K⁺ a ${num(rate, 2)} mEq/kg/h (> 0,5)`);
+      s.addLog('evento', `Aritmia ventricolare durante infusione rapida di KCl (${num(rate, 2)} mEq/kg/h). Velocità ridotta a ${safeRate} ml/h.`);
       s.showModal({
         tone: 'danger',
         title: 'Aritmia ventricolare!',
-        body: `Hai impostato ${rate.toFixed(2)} mEq/kg/h di potassio: il limite di sicurezza è 0,5 mEq/kg/h. Il cuore risente subito delle concentrazioni locali elevate: compaiono complessi ventricolari prematuri. L'infermiere riduce la pompa a ${safeRate} ml/h.`,
+        body: `Hai impostato ${num(rate, 2)} mEq/kg/h di potassio: il limite di sicurezza è 0,5 mEq/kg/h. Il cuore risente subito delle concentrazioni locali elevate: compaiono complessi ventricolari prematuri. L'infermiere riduce la pompa a ${safeRate} ml/h.`,
       });
       return false;
     }
@@ -338,7 +339,7 @@ export const useSim = create<SimState>((set, get) => ({
       'terapia',
       f.fluid === 'none' || f.rateMlH === 0
         ? 'Fluidoterapia sospesa'
-        : `Pompa: ${FLUID_LABEL[f.fluid]} ${f.rateMlH} ml/h, KCl ${f.kclMeqL} mEq/L (${rate.toFixed(2)} mEq/kg/h)`,
+        : `Pompa: ${FLUID_LABEL[f.fluid]} ${f.rateMlH} ml/h, KCl ${f.kclMeqL} mEq/L (${num(rate, 2)} mEq/kg/h)`,
     );
     return true;
   },

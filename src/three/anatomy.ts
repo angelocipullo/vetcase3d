@@ -14,6 +14,8 @@ import { CatmullRomCurve3, Vector3 } from 'three';
  */
 
 export type Species = 'cane' | 'gatto';
+/** Anatomia usata: per il gatto ce n'è una per il modello in codice e una per il glTF locale. */
+type AnatomyKey = Species | 'gattoGlb';
 
 /** Posizionamento del modello glTF del cane nella scena (vedi Dog.tsx). */
 export const DOG_TRANSFORM = { scale: 0.65, offsetX: -0.35 };
@@ -21,7 +23,16 @@ export const DOG_TRANSFORM = { scale: 0.65, offsetX: -0.35 };
 export type CameraView = 'default' | 'syringe' | 'thermometer' | 'femoral' | 'resp';
 type View = { pos: Vector3; target: Vector3 };
 /** Avambraccio anteriore sinistro (tra gomito e carpo): centro, raggio, lunghezza; `cuffY` = altezza del laccio. */
-type Leg = { x: number; z: number; radius: number; length: number; y: number; cuffY: number };
+type Leg = {
+  x: number;
+  z: number;
+  radius: number;
+  length: number;
+  y: number;
+  cuffY: number;
+  /** Laccio ellittico misurato sulla mesh (centro e semiassi all'asse del tubo), se la zampa non è circolare. */
+  cuff?: { x: number; z: number; rx: number; rz: number };
+};
 
 interface Anatomy {
   zones: Record<'heart' | 'lungs' | 'rectal' | 'femoral', Vector3>;
@@ -29,12 +40,16 @@ interface Anatomy {
   /** Vena cefalica dall'alto in basso, appena sopra la faccia craniale (+X) dell'avambraccio. */
   vein: [number, number, number][];
   views: Record<CameraView, View>;
+  /** Termometro lungo il suo asse, dal punto rettale: punta a riposo (sulla cute) e quanto entra. */
+  thermo?: Thermo;
 }
+type Thermo = { rest: number; travel: number };
+const THERMO_DEFAULT: Thermo = { rest: -0.07, travel: 0.11 };
 
 const v = (x: number, y: number, z: number) => new Vector3(x, y, z);
 const view = (p: [number, number, number], t: [number, number, number]): View => ({ pos: v(...p), target: v(...t) });
 
-const ANATOMY: Record<Species, Anatomy> = {
+const ANATOMY: Record<Species, Anatomy> & Partial<Record<'gattoGlb', Anatomy>> = {
   cane: {
     zones: {
       // cuore: emitorace sinistro, terzo inferiore del torace subito dietro il gomito
@@ -87,6 +102,34 @@ const ANATOMY: Record<Species, Anatomy> = {
   },
 };
 
+// gatto glTF locale (CatModel.tsx), misurato sulla mesh in posa di riposo con window.__catSlice/__catBones
+ANATOMY.gattoGlb = {
+  zones: {
+    heart: v(0.2, 0.55, 0.2),
+    lungs: v(-0.02, 0.72, 0.21),
+    rectal: v(-0.7, 0.8, 0),
+    femoral: v(-0.52, 0.56, 0.2),
+  },
+  // avambraccio sinistro: gomito (0,325; 0,425; 0,126) → carpo (0,311; 0,173; 0,107), faccia craniale x 0,385–0,40
+  // sezione a y 0,38: x 0,256–0,40, z 0,033–0,16 → laccio ellittico attorno, sopra la vena
+  leg: { x: 0.325, z: 0.112, radius: 0.065, length: 0.2, y: 0.3, cuffY: 0.385, cuff: { x: 0.33, z: 0.097, rx: 0.083, rz: 0.078 } },
+  vein: [
+    [0.402, 0.39, 0.115],
+    [0.396, 0.32, 0.113],
+    [0.39, 0.25, 0.11],
+    [0.385, 0.19, 0.108],
+  ],
+  // groppa a x ≈ −0,77: la punta entra di 4 cm e la sonda resta per metà fuori
+  thermo: { rest: -0.07, travel: 0.04 },
+  views: {
+    default: view([-0.05, 1.25, 3.6], [-0.05, 0.6, 0]),
+    syringe: view([1.0, 0.48, 0.95], [0.33, 0.3, 0.11]),
+    thermometer: view([-1.75, 1.15, 1.0], [-0.7, 0.8, 0]),
+    femoral: view([-0.25, 0.85, 1.15], [-0.52, 0.55, 0.18]),
+    resp: view([0.05, 1.0, 2.3], [0.05, 0.7, 0.1]),
+  },
+};
+
 /* oggetti "vivi" della specie corrente (riscritti da setSpecies) */
 export const ZONES = {
   heart: new Vector3(),
@@ -94,6 +137,9 @@ export const ZONES = {
   rectal: new Vector3(),
   femoral: new Vector3(),
 };
+
+/** Termometro della specie corrente (vedi Anatomy.thermo). */
+export const THERMO_DEPTH: Thermo = { ...THERMO_DEFAULT };
 
 /** Avambraccio anteriore sinistro della specie corrente (collider del prelievo, laccio). */
 export const FRONT_LEFT_LEG: Leg = { x: 0, z: 0, radius: 0, length: 0, y: 0, cuffY: 0 };
@@ -110,15 +156,17 @@ export const CAMERA_VIEWS = {
   resp: { pos: new Vector3(), target: new Vector3() },
 } as Record<CameraView, View>;
 
-let current: Species | null = null;
+let current: AnatomyKey | null = null;
 
-/** Imposta la specie del paziente sul tavolo (prima di montare la scena 3D). */
-export function setSpecies(s: Species) {
-  if (s === current) return;
-  current = s;
-  const a = ANATOMY[s];
+/** Imposta la specie del paziente sul tavolo (prima di montare la scena 3D); `glb` = gatto glTF locale. */
+export function setSpecies(s: Species, glb = false) {
+  const key: AnatomyKey = s === 'gatto' && glb ? 'gattoGlb' : s;
+  if (key === current) return;
+  current = key;
+  const a = ANATOMY[key] ?? ANATOMY.gatto;
   for (const k of Object.keys(ZONES) as (keyof typeof ZONES)[]) ZONES[k].copy(a.zones[k]);
-  Object.assign(FRONT_LEFT_LEG, a.leg);
+  Object.assign(FRONT_LEFT_LEG, { cuff: undefined }, a.leg);
+  Object.assign(THERMO_DEPTH, a.thermo ?? THERMO_DEFAULT);
   VEIN_CURVE.points.forEach((p, i) => p.set(...a.vein[i]));
   VEIN_SAMPLES = VEIN_CURVE.getSpacedPoints(80);
   for (const k of Object.keys(CAMERA_VIEWS) as CameraView[]) {
@@ -134,7 +182,7 @@ export function distanceToVein(p: Vector3): number {
 }
 
 export function currentSpecies(): Species {
-  return current ?? 'cane';
+  return current === 'cane' || current === null ? 'cane' : 'gatto';
 }
 
 setSpecies('cane');

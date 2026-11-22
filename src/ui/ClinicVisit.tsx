@@ -1,5 +1,5 @@
 import { Canvas } from '@react-three/fiber';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { Tool } from '../game/types';
 import { VITAL_LABEL } from '../sim/exams';
 import { useSim } from '../sim/store';
@@ -13,7 +13,7 @@ import { PixelSprite } from './sim/rpg';
 import { DopplerGame, LocGame, MucousGame, PulseGame, RespGame, TrcGame } from './sim/vitalGames';
 import { SoundToggle } from './SoundToggle';
 import { VITAL_TOOL } from './clinicTools';
-import { StethoscopeHint, SyringePanel, ThermometerPanel } from './ToolPanels';
+import { ListenPrompt, StethoscopeHint, SyringePanel, ThermometerPanel } from './ToolPanels';
 
 /* =====================================================================
  * Visita nell'ambulatorio 3D, aperta da una fase del caso (scheda di PS
@@ -109,16 +109,19 @@ function ClinicHUD() {
   const { setTool, setGuided, closeVisit } = useGame.getState();
   const [win, setWin] = useState<VitalId | null>(visit.startFocus && !VITAL_TOOL[visit.startFocus] ? visit.startFocus : null);
   const [record, setRecord] = useState(false);
+  const diploma = useGame((s) => s.diploma);
+  const auscultDone = useGame((s) => !!s.auscult.heart && !!s.auscult.lungs);
 
   const pickVital = (v: VitalId) => {
     const t = VITAL_TOOL[v];
     if (!t) return setWin(v);
     if (tool !== t) setTool(t);
   };
-  const missing = visit.required.filter((v) => !findings[v]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && useGame.getState().diploma) return useGame.getState().setDiploma(null);
+      if (e.key === 'Escape' && useGame.getState().listenPrompt) return useGame.getState().closeListen();
       if (e.key === 'Escape' && !record && !win) closeVisit();
       if ((e.key === 'g' || e.key === 'G') && !(e.target instanceof HTMLInputElement)) setGuided(!useGame.getState().guided);
     };
@@ -156,14 +159,16 @@ function ClinicHUD() {
         <button className="pill" onClick={() => setRecord(true)} title="Cartella clinica">
           🗂️ <span className="pill-label">Cartella</span>
         </button>
-        <button className={`pill ${guided ? 'on' : ''}`} onClick={() => setGuided(!guided)} title="Guida (G)">
-          {guided ? '🎯 Guida on' : '🎯 Guida'}
+        {/* guida: pulsante tondo con il punto interrogativo; acceso = i punti giusti lampeggiano sul paziente */}
+        <button
+          className={`pill help-btn ${guided ? 'on' : ''}`}
+          onClick={() => setGuided(!guided)}
+          title={guided ? 'Guida attiva (G): tocca per spegnerla' : 'Guida (G): mostra dove toccare'}
+          aria-label={guided ? 'Guida attiva' : 'Guida'}
+          aria-pressed={guided}
+        >
+          ?
         </button>
-        {visit.mode === 'vitals' && (
-          <button className="pill clinic-done" onClick={closeVisit}>
-            {missing.length ? `↩ Scheda (mancano ${missing.length})` : '✓ Torna alla scheda'}
-          </button>
-        )}
       </div>
 
       <Toast />
@@ -189,21 +194,28 @@ function ClinicHUD() {
             <button key={v} className={`tool ${sel ? 'sel' : ''} ${findings[v] ? 'done' : ''}`} onClick={() => pickVital(v)} title={VITAL_LABEL[v].label}>
               <span className="ti">{VITAL_LABEL[v].icon}</span>
               <span className="tl">{VITAL_LABEL[v].label.replace(' (Doppler)', '').replace('Tempo di riempimento capillare', 'TRC').replace('Stato mentale (LOC)', 'Stato mentale')}</span>
-              {!VITAL_TOOL[v] && <em className="tool-win" title="Si apre in una finestra">⧉</em>}
               {findings[v] && <em className="tool-ok">✓</em>}
             </button>
           );
         })}
         {visit.mode === 'vitals' && (
-          <button className={`tool ${tool === Tool.Stethoscope ? 'sel' : ''}`} onClick={() => setTool(Tool.Stethoscope)}>
+          <button className={`tool ${tool === Tool.Stethoscope ? 'sel' : ''} ${auscultDone ? 'done' : ''}`} onClick={() => setTool(Tool.Stethoscope)}>
             <span className="ti">🩺</span>
             <span className="tl">Auscultazione</span>
+            {auscultDone && <em className="tool-ok">✓</em>}
           </button>
         )}
       </nav>
 
+      <ListenPrompt />
       {win && <VitalWindow v={win} onClose={() => setWin(null)} />}
       {record && <ClinicalRecord onClose={() => setRecord(false)} />}
+      {diploma && (
+        <div className="diploma-view" role="dialog" aria-label="Pergamena di laurea" onClick={() => useGame.getState().setDiploma(null)}>
+          <img src={diploma} alt="Pergamena di laurea in Medicina Veterinaria" onClick={(e) => e.stopPropagation()} />
+          <button className="diploma-close" aria-label="Chiudi" onClick={() => useGame.getState().setDiploma(null)}>✕</button>
+        </div>
+      )}
     </div>
   );
 }
@@ -212,13 +224,31 @@ function ClinicHUD() {
 export function ClinicVisit() {
   const visit = useGame((s) => s.visit);
   const sceneReady = useGame((s) => s.sceneReady);
+  const box = useRef<HTMLDivElement>(null);
+  // il canvas 3D si ridimensiona sull'evento "resize" della finestra: se cambia solo il contenitore
+  // (pannello ridimensionato, barra degli indirizzi del telefono, zoom) lo si avvisa, così niente fasce vuote
+  useEffect(() => {
+    const el = box.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    let raf = 0;
+    const ro = new ResizeObserver(() => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+    });
+    ro.observe(el);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+    };
+  }, [visit]);
   if (!visit) return null;
   const cam = CAMERA_VIEWS.default.pos;
   return (
-    <div className="clinic-visit">
+    <div className="clinic-visit" ref={box}>
       <Canvas
         shadows
-        dpr={[1, 2]}
+        dpr={[1, 1.5]}
+        performance={{ min: 0.6 }}
         frameloop={sceneReady ? 'always' : 'never'}
         camera={{ position: [cam.x, cam.y, cam.z], fov: 40, near: 0.05, far: 50 }}
         className="canvas"

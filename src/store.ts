@@ -1,10 +1,22 @@
 import { create } from 'zustand';
 import { audio } from './audio/engine';
-import { SyringePhase, TechniqueError, Tool } from './game/types';
+import { HeartSound, LungSound, SyringePhase, TechniqueError, Tool } from './game/types';
 import { setSpecies, type CameraView } from './three/anatomy';
+import { catModelAvailable } from './three/CatModel';
+import { handModelAvailable } from './three/HandModel';
 import { SIM_CASES } from './sim/cases';
 import { useSim } from './sim/store';
 import type { SimPatient, SpriteSpec, VitalId, VitalTruth } from './sim/types';
+
+/** Auscultazione: millisecondi di ascolto su cuore e polmoni e risposta data. */
+export interface Auscult {
+  heartMs: number;
+  lungsMs: number;
+  heart?: HeartSound;
+  lungs?: LungSound;
+}
+/** Ascolto necessario prima di chiedere cosa si è sentito. */
+export const LISTEN_REQUIRED_MS = 3000;
 
 export interface SyringeState {
   phase: SyringePhase;
@@ -49,6 +61,10 @@ interface GameState {
   /** Audio disattivato dall'utente (preferenza salvata). */
   muted: boolean;
   visit: Visit | null;
+  /** Il gatto glTF (public/models/cat.glb) è disponibile? */
+  catGlb: boolean;
+  /** C'è la mano glTF per il polso femorale (public/models/hand.glb)? */
+  handGlb: boolean;
   tool: Tool;
   /** Lo strumento è stato appoggiato nel punto anatomico giusto (polso femorale). */
   placed: boolean;
@@ -63,6 +79,11 @@ interface GameState {
   /** Errori tecnici della procedura in corso (prelievo, termometro). */
   errors: TechniqueError[];
   toast: { text: string; id: number } | null;
+  /** Pergamena di laurea aperta a schermo intero (immagine PNG), o null. */
+  diploma: string | null;
+  auscult: Auscult;
+  /** Domanda "cosa hai sentito?" aperta dopo abbastanza ascolto. */
+  listenPrompt: 'heart' | 'lungs' | null;
 
   /** Simulatore clinico a fasi (caso per id, default il primo). */
   startSim: (caseId?: string) => void;
@@ -77,6 +98,11 @@ interface GameState {
   addStress: (n: number) => void;
   pet: () => void;
   showToast: (text: string) => void;
+  setDiploma: (img: string | null) => void;
+  /** Accumula ascolto su cuore/polmoni; a ascolto completo apre la domanda. */
+  listen: (heartMs: number, lungsMs: number) => void;
+  answerListen: (a: HeartSound | LungSound) => void;
+  closeListen: () => void;
   addError: (e: TechniqueError) => void;
   patchSyringe: (p: Partial<SyringeState>) => void;
   patchThermo: (p: Partial<GameState['thermo']>) => void;
@@ -104,6 +130,8 @@ export const useGame = create<GameState>((set, get) => ({
   sceneReady: false,
   muted: audio.isMuted(),
   visit: null,
+  catGlb: false,
+  handGlb: false,
   tool: Tool.Hand,
   placed: false,
   stress: 20,
@@ -114,6 +142,9 @@ export const useGame = create<GameState>((set, get) => ({
   pulseBeat: 0,
   errors: [],
   toast: null,
+  diploma: null,
+  auscult: { heartMs: 0, lungsMs: 0 },
+  listenPrompt: null,
 
   startSim: (caseId) => {
     const c = SIM_CASES.find((x) => x.id === caseId) ?? SIM_CASES[0];
@@ -130,7 +161,7 @@ export const useGame = create<GameState>((set, get) => ({
 
   openVisit: (v) => {
     // punti anatomici e inquadrature della specie, prima che la scena 3D venga montata
-    setSpecies(v.patient.species);
+    setSpecies(v.patient.species, get().catGlb);
     set({
       visit: v,
       tool: Tool.Hand,
@@ -139,12 +170,15 @@ export const useGame = create<GameState>((set, get) => ({
       syringe: freshSyringe(),
       thermo: freshThermo(),
       errors: [],
+      auscult: { heartMs: 0, lungsMs: 0 },
+      listenPrompt: null,
     });
     if (v.startTool) get().setTool(v.startTool);
   },
   closeVisit: () => {
     audio.stop();
-    set({ visit: null, tool: Tool.Hand, placed: false });
+    document.body.style.cursor = '';
+    set({ visit: null, tool: Tool.Hand, placed: false, diploma: null, listenPrompt: null });
   },
 
   setTool: (t) => {
@@ -163,6 +197,29 @@ export const useGame = create<GameState>((set, get) => ({
     set({ happyUntil: performance.now() + 2500 });
   },
   showToast: (text) => set({ toast: { text, id: ++toastId } }),
+  setDiploma: (diploma) => set({ diploma }),
+  listen: (h, l) => {
+    const { auscult: a, listenPrompt } = get();
+    const next = { ...a, heartMs: a.heartMs + h, lungsMs: a.lungsMs + l };
+    let prompt = listenPrompt;
+    if (!prompt && !a.heart && next.heartMs >= LISTEN_REQUIRED_MS) prompt = 'heart';
+    else if (!prompt && !a.lungs && next.lungsMs >= LISTEN_REQUIRED_MS) prompt = 'lungs';
+    set({ auscult: next, listenPrompt: prompt });
+  },
+  answerListen: (ans) => {
+    const { listenPrompt: which, auscult, visit } = get();
+    if (!which || !visit) return;
+    const right = which === 'heart' ? expectedHeart(visit.truth) : LungSound.Normal;
+    const ok = ans === right;
+    const label = which === 'heart' ? HEART_LABEL[ans as HeartSound] : LUNG_LABEL[ans as LungSound];
+    const name = which === 'heart' ? 'Cuore' : 'Polmoni';
+    set({ auscult: { ...auscult, [which]: ans }, listenPrompt: null });
+    useSim.getState().addLog('azione', `Auscultazione · ${name}: ${label}`);
+    get().showToast(ok ? `✓ ${name}: ${label}` : `✗ ${name}: hai indicato «${label}», ma il reperto era «${which === 'heart' ? HEART_LABEL[right as HeartSound] : LUNG_LABEL[right as LungSound]}»`);
+    // se l'altro distretto è già stato ascoltato abbastanza, chiede subito anche quello
+    setTimeout(() => get().listen(0, 0), 400);
+  },
+  closeListen: () => set((s) => ({ listenPrompt: null, auscult: { ...s.auscult, [s.listenPrompt === 'heart' ? 'heartMs' : 'lungsMs']: 0 } })),
   addError: (e) => set((s) => ({ errors: [...s.errors, e] })),
   patchSyringe: (p) => set((s) => ({ syringe: { ...s.syringe, ...p } })),
   patchThermo: (p) => set((s) => ({ thermo: { ...s.thermo, ...p } })),
@@ -177,6 +234,24 @@ export const useGame = create<GameState>((set, get) => ({
   beatPulse: () => set((s) => ({ pulseBeat: s.pulseBeat + 1 })),
 }));
 
+export const HEART_LABEL: Record<HeartSound, string> = {
+  [HeartSound.Normal]: 'Normale',
+  [HeartSound.Tachycardia]: 'Tachicardia',
+  [HeartSound.Bradycardia]: 'Bradicardia',
+  [HeartSound.Murmur]: 'Soffio',
+  [HeartSound.Arrhythmia]: 'Aritmia',
+};
+export const LUNG_LABEL: Record<LungSound, string> = {
+  [LungSound.Normal]: 'Murmure vescicolare normale',
+  [LungSound.Crackles]: 'Crepitii',
+  [LungSound.Wheezes]: 'Sibili',
+  [LungSound.Muffled]: 'Suoni attutiti',
+};
+/** Suono cardiaco del caso (lo stesso che si sente in cuffia). */
+export function expectedHeart(t: VitalTruth): HeartSound {
+  return t.hr > t.hrRange[1] ? HeartSound.Tachycardia : t.hr < t.hrRange[0] ? HeartSound.Bradycardia : HeartSound.Normal;
+}
+
 /** Vista camera derivata dallo stato. */
 export function cameraViewFor(tool: Tool, thermoActive: boolean, placed: boolean): CameraView {
   if (tool === Tool.Syringe) return 'syringe';
@@ -185,3 +260,10 @@ export function cameraViewFor(tool: Tool, thermoActive: boolean, placed: boolean
   if (tool === Tool.Resp) return 'resp';
   return 'default';
 }
+
+// gatto glTF: se il file si carica lo si usa; altrimenti resta il gatto costruito in codice (Cat.tsx)
+void catModelAvailable().then((ok) => useGame.setState({ catGlb: ok }));
+// mano glTF: se il file c'è si usa al posto della mano costruita in codice
+void handModelAvailable().then((ok) => useGame.setState({ handGlb: ok }));
+
+if (import.meta.env.DEV) (window as unknown as { __game: typeof useGame }).__game = useGame;

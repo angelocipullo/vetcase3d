@@ -26,11 +26,11 @@ export const MICHELE: SimCase = {
   },
   disease: { kg: KG, aldo: 0, hrBase: 235, rrBase: 42 },
   initialPhys: {
-    k: 4.0, na: 152, cl: 120, hco3: 20, pco2: 32, ph: 7.42, glu: 130, lact: 3.1, sbp: 125, hr: 240, rr: 44, temp: 39.6, vomiting: false,
+    k: 4.0, na: 152, cl: 120, hco3: 20, pco2: 32, ph: 7.42, glu: 130, lact: 3.1, sbp: 125, hr: 230, rr: 44, temp: 39.6, vomiting: false,
   },
   vitals: {
     temp: 39.6,
-    hr: 240,
+    hr: 230,
     hrRange: [140, 220],
     rr: 44,
     mucose: 'pallide',

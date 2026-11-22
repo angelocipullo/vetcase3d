@@ -2,6 +2,7 @@ import { aldoEffective } from '../physiology';
 import { kScale } from '../protocols';
 import { bloodGasRows, row, txt } from '../results';
 import { SimCase, SimCtx } from '../types';
+import { num } from '../format';
 
 /**
  * BIRILLO — gatto comune europeo, MC, 7 anni, 5 kg.
@@ -19,7 +20,7 @@ const KG = 5;
 const kMeasured = (ctx: SimCtx) => ctx.lastValue('emogas', 'K⁺');
 const kText = (ctx: SimCtx) => {
   const k = kMeasured(ctx);
-  return k === undefined ? 'non ancora misurato' : `${k.toFixed(1)} mEq/L`;
+  return k === undefined ? 'non ancora misurato' : `${num(k, 1)} mEq/L`;
 };
 
 const unstable = (ctx: SimCtx) =>

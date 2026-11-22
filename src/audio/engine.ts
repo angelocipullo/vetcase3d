@@ -99,9 +99,35 @@ class AuscultationEngine {
     if (this.ctx && this.out) this.out.gain.setTargetAtTime(muted ? 0 : 1, this.ctx.currentTime, 0.05);
   }
 
+  /**
+   * Sblocco per smartphone: va eseguito DENTRO un gesto (tocco, clic, tasto). Riprende il contesto
+   * e fa partire un suono muto di un campione, che è ciò che iOS richiede per aprire l'uscita audio.
+   * Su iPhone imposta anche la sessione come "riproduzione", così si sente anche con l'interruttore silenzioso.
+   */
+  unlockFromGesture() {
+    try {
+      const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
+      if (session && session.type !== 'playback') session.type = 'playback';
+    } catch {
+      /* API non disponibile */
+    }
+    const ctx = this.ensure();
+    if (ctx.state !== 'running') void ctx.resume();
+    const src = ctx.createBufferSource();
+    src.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+    src.connect(ctx.destination);
+    src.start(0);
+    return ctx.state === 'running';
+  }
+
+  /** Lo stato del contesto è "running" (audio udibile)? */
+  isRunning() {
+    return this.ctx?.state === 'running';
+  }
+
   /** Va chiamato da un gesto utente almeno una volta (policy autoplay iOS). */
   unlock() {
-    this.ensure();
+    this.unlockFromGesture();
     // precarica gli abbai registrati (public/audio/bark_1.mp3, bark_2.mp3)
     for (const name of BARK_SAMPLES) void this.loadSample(name);
   }
@@ -379,6 +405,146 @@ class AuscultationEngine {
     }
   }
 
+  /** Sorgente "glottale" del gatto: armoniche con pendenza naturale (più ricca di un dente di sega puro). */
+  private catWave?: PeriodicWave;
+
+  /**
+   * Miagolio sintetizzato come una voce vera: sorgente con armoniche + soffio d'aria, filtrata da tre
+   * formanti (risonanze della gola e della bocca) che scivolano tra le vocali i → a → o, con la "m"
+   * iniziale a bocca chiusa, intonazione irregolare (jitter) e vibrato. Ogni chiamata sceglie a caso
+   * tipo, altezza, durata e timbro:
+   * - "mew": corto e acuto (richiamo);
+   * - "meow": il classico mi-a-o;
+   * - "mrrp": trillo arrotolato che sale (saluto, coccole);
+   * - lamentoso (`plaintive`, stress o dolore): lungo, più basso, che scende con vibrato largo.
+   */
+  meow(plaintive = false) {
+    const ctx = this.ensure();
+    const t = ctx.currentTime + 0.01;
+    const rnd = (a: number, b: number) => a + Math.random() * (b - a);
+    const r = Math.random();
+    const kind: 'mew' | 'meow' | 'mrrp' | 'yowl' = plaintive ? (r < 0.75 ? 'yowl' : 'meow') : r < 0.3 ? 'mew' : r < 0.78 ? 'meow' : 'mrrp';
+
+    const dur = { mew: rnd(0.22, 0.38), meow: rnd(0.5, 0.85), mrrp: rnd(0.28, 0.42), yowl: rnd(0.95, 1.45) }[kind];
+    const f0 = { mew: rnd(780, 1000), meow: rnd(560, 820), mrrp: rnd(480, 640), yowl: rnd(430, 600) }[kind];
+    const tract = rnd(0.9, 1.15); // gatto più piccolo = formanti più alte
+
+    // vocali (F1, F2, F3) e percorso nel tempo per ogni tipo
+    const V = { i: [600, 2600, 3600], a: [1100, 1750, 3000], o: [750, 1150, 2650], u: [550, 950, 2500] };
+    type Key = keyof typeof V;
+    const PATHS: Record<typeof kind, [number, Key][]> = {
+      mew: [[0, 'i'], [0.35, 'a'], [1, 'a']],
+      meow: [[0, 'i'], [0.22, 'a'], [0.62, 'a'], [1, 'o']],
+      mrrp: [[0, 'u'], [0.55, 'u'], [1, 'a']],
+      yowl: [[0, 'a'], [0.4, 'a'], [0.75, 'o'], [1, 'u']],
+    };
+    const path = PATHS[kind];
+    const vowelAt = (u: number, k: number) => {
+      for (let i = 1; i < path.length; i++) {
+        if (u <= path[i][0]) {
+          const [u0, a] = path[i - 1];
+          const [u1, b] = path[i];
+          const x = (u - u0) / Math.max(1e-6, u1 - u0);
+          const s = x * x * (3 - 2 * x);
+          return (V[a][k] + (V[b][k] - V[a][k]) * s) * tract;
+        }
+      }
+      return V[path[path.length - 1][1]][k] * tract;
+    };
+    // intonazione: forma del tipo + irregolarità lenta (jitter) a caso
+    const j1 = rnd(0, 6.28), j2 = rnd(0, 6.28);
+    const pitchShape = (u: number) => {
+      switch (kind) {
+        case 'mew': return 0.92 + 0.22 * Math.sin(Math.PI * Math.min(1, u * 1.3)) - 0.1 * u;
+        case 'meow': return 0.86 + 0.34 * Math.sin(Math.PI * Math.min(1, u / 0.7)) * (u < 0.7 ? 1 : 0) + (u >= 0.7 ? -0.12 * ((u - 0.7) / 0.3) : 0);
+        case 'mrrp': return 0.88 + 0.36 * u * u;
+        case 'yowl': return 1.05 + 0.12 * Math.sin(Math.PI * u * 0.8) - 0.3 * u * u;
+      }
+    };
+    const N = 96;
+    const curve = (fn: (u: number) => number) => Float32Array.from({ length: N }, (_, i) => fn(i / (N - 1)));
+    const pitch = curve((u) => f0 * pitchShape(u) * (1 + 0.012 * Math.sin(u * 23 + j1) + 0.008 * Math.sin(u * 51 + j2)));
+
+    // sorgente armonica
+    if (!this.catWave) {
+      const H = 40;
+      const real = new Float32Array(H);
+      const imag = Float32Array.from({ length: H }, (_, n) => (n === 0 ? 0 : 1 / Math.pow(n, 1.15)));
+      this.catWave = ctx.createPeriodicWave(real, imag);
+    }
+    const osc = ctx.createOscillator();
+    osc.setPeriodicWave(this.catWave);
+    osc.frequency.setValueCurveAtTime(pitch, t, dur);
+    // vibrato (più largo nel lamento)
+    const vib = ctx.createOscillator();
+    vib.frequency.value = rnd(5, 7.5);
+    const vibAmt = ctx.createGain();
+    vibAmt.gain.value = f0 * (kind === 'yowl' ? 0.035 : 0.012);
+    vib.connect(vibAmt).connect(osc.frequency);
+
+    // soffio d'aria (aspirazione), più forte all'attacco e nel lamento
+    const noise = ctx.createBufferSource();
+    noise.buffer = this.noise!;
+    noise.loop = true;
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 1500;
+    const breath = ctx.createGain();
+    const br = kind === 'yowl' ? 0.35 : rnd(0.12, 0.25);
+    breath.gain.setValueCurveAtTime(curve((u) => br * (u < 0.1 ? 1.6 : 1)), t, dur);
+    noise.connect(hp).connect(breath);
+
+    const src = ctx.createGain();
+    osc.connect(src);
+    breath.connect(src);
+
+    // "m" iniziale: bocca chiusa (passa-basso) che si apre in pochi centesimi di secondo
+    const mouth = ctx.createBiquadFilter();
+    mouth.type = 'lowpass';
+    mouth.Q.value = 0.5;
+    const open = kind === 'mrrp' ? 0.12 : 0.08;
+    mouth.frequency.setValueCurveAtTime(curve((u) => (u < open ? 450 + (7000 - 450) * Math.pow(u / open, 2) : 7000 - 2500 * Math.max(0, u - 0.85) / 0.15)), t, dur);
+    src.connect(mouth);
+
+    // tre formanti in parallelo
+    const mix = ctx.createGain();
+    [
+      [0, 7, 1],
+      [1, 9, 0.7],
+      [2, 11, 0.3],
+    ].forEach(([k, q, level]) => {
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.Q.value = q;
+      bp.frequency.setValueCurveAtTime(curve((u) => vowelAt(u, k)), t, dur);
+      const lv = ctx.createGain();
+      lv.gain.value = level * 0.75;
+      mouth.connect(bp).connect(lv).connect(mix);
+    });
+
+    // volume: attacco morbido, corpo, coda; il "mrrp" ha il trillo (modulazione rapida) nella prima metà
+    const amp = ctx.createGain();
+    const peak = kind === 'mew' ? 0.42 : 0.5;
+    const roll = rnd(22, 30);
+    amp.gain.setValueCurveAtTime(
+      curve((u) => {
+        const env = Math.min(1, u / 0.07) * (u > 0.75 ? Math.pow(1 - (u - 0.75) / 0.25, 1.6) : 1);
+        const trill = kind === 'mrrp' && u < 0.55 ? 0.55 + 0.45 * Math.sin(u * dur * roll * Math.PI * 2) : 1;
+        return Math.max(0.0001, peak * env * trill);
+      }),
+      t,
+      dur,
+    );
+    mix.connect(amp).connect(this.out!);
+
+    const end = t + dur + 0.03;
+    for (const n of [osc, vib, noise]) {
+      n.start(t);
+      n.stop(end);
+    }
+    osc.onended = () => amp.disconnect();
+  }
+
   whine() {
     const ctx = this.ensure();
     const t = ctx.currentTime;
@@ -441,3 +607,17 @@ class AuscultationEngine {
 }
 
 export const audio = new AuscultationEngine();
+
+/*
+ * Sblocco automatico su smartphone: a ogni tocco/clic/tasto, finché l'audio non è attivo, si sblocca
+ * il contesto dentro il gesto. Dopo una pausa (app in background, chiamata) iOS lo sospende di nuovo:
+ * i listener restano e lo riprendono al tocco successivo.
+ */
+if (typeof window !== 'undefined') {
+  const onGesture = () => {
+    if (!audio.isRunning()) audio.unlockFromGesture();
+  };
+  for (const ev of ['touchend', 'pointerup', 'click', 'keydown'] as const) {
+    window.addEventListener(ev, onGesture, { capture: true, passive: true });
+  }
+}

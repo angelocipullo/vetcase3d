@@ -19,6 +19,7 @@ type TitlePhase = 'outside' | 'walking' | 'wipe' | 'inside';
 export function TitleScreen() {
   const startSim = useGame((s) => s.startSim);
   const [phase, setPhase] = useState<TitlePhase>('outside');
+  const [credits, setCredits] = useState(false);
 
   // precarica in sottofondo modello del paziente e ambulatorio 3D (usati nella scheda di PS)
   useEffect(() => {
@@ -39,10 +40,12 @@ export function TitleScreen() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Enter' || e.key === ' ') {
+        if (credits) return;
         if (phase === 'outside') enter();
         else if (phase === 'walking') entered();
       }
       if (e.key === 'm' || e.key === 'M') useGame.getState().toggleMute();
+      if (e.key === 'Escape') setCredits(false);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -97,7 +100,7 @@ export function TitleScreen() {
                           {'★'.repeat(c.difficulty)}
                           <i>{'★'.repeat(3 - c.difficulty)}</i>
                         </span>
-                        {DIFFICULTY[c.difficulty]} · {c.generated ? 'caso generato' : 'caso reale'}
+                        {DIFFICULTY[c.difficulty]}
                       </span>
                     </span>
                     <span className="lobby-go" aria-hidden>▶</span>
@@ -115,13 +118,46 @@ export function TitleScreen() {
       {/* transizione a bande che chiudono e riaprono lo schermo */}
       {(phase === 'wipe' || phase === 'inside') && <div className={`title-wipe ${phase}`} aria-hidden />}
 
-      <p className="credits">
-        Cane 3D: “PitBull” di{' '}
-        <a href="https://sketchfab.com/3d-models/2be37d5b9f754ed4bcc2d8f41b23a1d7" target="_blank" rel="noreferrer">
-          Joseph AYYAD
-        </a>{' '}
-        (CC BY 4.0, modificato) · ambulatorio: asset CC0 di Poly Haven · Didattico, non sostituisce la formazione clinica
-      </p>
+      <button className="credits-btn" onClick={() => setCredits(true)}>Credits</button>
+      {credits && (
+        <div className="credits-backdrop" onClick={() => setCredits(false)}>
+          <div className="credits-box" role="dialog" aria-label="Credits" onClick={(e) => e.stopPropagation()}>
+            <p className="lobby-eyebrow">VetCase 3D</p>
+            <h2>Credits</h2>
+            <ul>
+              <li>
+                <b>Cane 3D</b>: “PitBull” di{' '}
+                <a href="https://sketchfab.com/3d-models/2be37d5b9f754ed4bcc2d8f41b23a1d7" target="_blank" rel="noreferrer">
+                  Joseph AYYAD
+                </a>{' '}
+                (CC BY 4.0, modificato)
+              </li>
+              <li>
+                <b>Gatto 3D</b>: “calico-cami” di{' '}
+                <a href="https://sketchfab.com/3d-models/calico-cami-f26918cfa2964127a93177c2922972e7" target="_blank" rel="noreferrer">
+                  Cartoon cat oficial
+                </a>{' '}
+                (CC BY 4.0, modificato)
+              </li>
+              <li>
+                <b>Mano 3D</b>: “the Hand” di{' '}
+                <a href="https://sketchfab.com/3d-models/the-hand-a0bd25ee25544603a8455121aa1242ec" target="_blank" rel="noreferrer">
+                  sayjing
+                </a>{' '}
+                (Sketchfab, modificata)
+              </li>
+              <li>
+                <b>Ambulatorio</b>: asset CC0 di Poly Haven; panorama del Vesuvio dalla finestra; meme “Ma chi è chist?” sullo schermo (© dei rispettivi titolari)
+              </li>
+            </ul>
+            <p className="credits-note">Didattico, non sostituisce la formazione clinica.</p>
+            <div className="lobby-foot">
+              <span />
+              <button className="lobby-link" onClick={() => setCredits(false)}>Chiudi ✕</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -74,8 +74,8 @@ function humanGrid(s: Extract<SpriteSpec, { kind: 'human' }>, talking: boolean):
     rect(g, 4, 6, 4, 8, 'h');
     rect(g, 13, 6, 13, 8, 'h');
   } else {
-    // nessun capello: la testa è tutta pelle, un po' più tonda in cima
-    rect(g, 6, 3, 11, 3, 's');
+    // capelli rasati: la testa resta della stessa forma, solo la striscia in cima è del colore dei capelli
+    rect(g, 6, 3, 11, 3, 'h');
   }
   // occhi, occhiali, guance, bocca
   g[7][7] = 'e';

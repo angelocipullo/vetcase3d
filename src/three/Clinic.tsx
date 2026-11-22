@@ -1,6 +1,8 @@
 import { RoundedBox, useGLTF, useTexture } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import { useLayoutEffect, useMemo } from 'react';
+import type { ThreeEvent } from '@react-three/fiber';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useGame } from '../store';
 import * as THREE from 'three';
 
 /**
@@ -89,7 +91,9 @@ function Prop({
   position,
   rotationY = 0,
   align = ['center', 'min', 'center'],
-  shadows = true,
+  // gli arredi glTF ricevono le ombre ma non le proiettano: alcuni hanno decine di migliaia di
+  // triangoli (il vaso ~59.000) e ridisegnarli nella mappa d'ombra dimezzava i fotogrammi
+  shadows = false,
   onScene,
 }: {
   id: string;
@@ -160,7 +164,7 @@ function WallClock({ position }: { position: [number, number, number] }) {
 
 /* ---------------------------------------------------------------- poster su canvas */
 
-function useCanvasTexture(w: number, h: number, draw: (g: CanvasRenderingContext2D, w: number, h: number) => void) {
+function useCanvasTexture(w: number, h: number, draw: (g: CanvasRenderingContext2D, w: number, h: number) => void): THREE.CanvasTexture {
   return useMemo(() => {
     const cv = document.createElement('canvas');
     cv.width = w;
@@ -255,69 +259,73 @@ function drawAnatomy(g: CanvasRenderingContext2D, w: number, h: number) {
   });
 }
 
-function drawVaccines(g: CanvasRenderingContext2D, w: number, h: number) {
-  g.fillStyle = '#ffffff';
-  g.fillRect(0, 0, w, h);
-  g.fillStyle = '#0b6e69';
-  g.fillRect(0, 0, w, 120);
-  g.fillStyle = '#ffffff';
-  g.textAlign = 'left';
-  g.font = `bold 40px ${SANS}`;
-  g.fillText('Protocollo vaccinale', 36, 62);
-  g.font = `22px ${SANS}`;
-  g.fillText('Cucciolo · linee guida WSAVA', 36, 98);
-  const rows: [string, string][] = [
-    ['6–8 settimane', 'Cimurro · Parvovirosi · Epatite'],
-    ['10–12 settimane', 'Richiamo CPV · Leptospirosi'],
-    ['14–16 settimane', 'Richiamo core · Rabbia'],
-    ['6–12 mesi', 'Richiamo core'],
-    ['Ogni anno', 'Leptospirosi'],
-    ['Ogni 3 anni', 'Vaccini core'],
-  ];
-  rows.forEach(([when, what], i) => {
-    const y = 170 + i * 74;
-    g.fillStyle = i % 2 ? '#f3f6f6' : '#ffffff';
-    g.fillRect(24, y - 34, w - 48, 70);
-    g.fillStyle = '#0b6e69';
-    g.font = `bold 23px ${SANS}`;
-    g.fillText(when, 40, y - 2);
-    g.fillStyle = '#3b4a4a';
-    g.font = `20px ${SANS}`;
-    g.fillText(what, 40, y + 25);
-  });
-  g.fillStyle = '#8a9898';
-  g.font = `16px ${SANS}`;
-  g.fillText('Chiedi al veterinario il piano adatto al tuo cane.', 36, h - 30);
-}
-
+/**
+ * Pergamena di laurea appesa in ambulatorio, in verticale, con impaginazione classica.
+ * È un oggetto di scena: niente stemma, motto, formule di legge, firme o nomi reali di autorità.
+ */
 function drawDiploma(g: CanvasRenderingContext2D, w: number, h: number) {
-  g.fillStyle = '#fbf8ef';
+  const paper = g.createRadialGradient(w / 2, h / 2, 80, w / 2, h / 2, h * 0.75);
+  paper.addColorStop(0, '#f8f6ee');
+  paper.addColorStop(1, '#e6e0cc');
+  g.fillStyle = paper;
   g.fillRect(0, 0, w, h);
-  g.strokeStyle = '#a88a3d';
-  g.lineWidth = 4;
-  g.strokeRect(24, 24, w - 48, h - 48);
-  g.lineWidth = 1.5;
-  g.strokeRect(34, 34, w - 68, h - 68);
-  g.fillStyle = '#3e3320';
-  g.textAlign = 'center';
-  g.font = `italic 26px ${SERIF}`;
-  g.fillText('Università degli Studi', w / 2, 92);
-  g.font = `bold 38px ${SERIF}`;
-  g.fillText('Diploma di Laurea', w / 2, 150);
-  g.font = `italic 26px ${SERIF}`;
-  g.fillText('in Medicina Veterinaria', w / 2, 192);
-  g.strokeStyle = '#c8c0ac';
+  // cornice sottile decorativa
+  g.strokeStyle = '#b8a57a';
   g.lineWidth = 2;
-  for (let i = 0; i < 3; i++) {
-    g.beginPath();
-    g.moveTo(110, 245 + i * 28);
-    g.lineTo(w - 110, 245 + i * 28);
-    g.stroke();
-  }
-  g.fillStyle = '#8f1d1d';
+  g.strokeRect(18, 18, w - 36, h - 36);
+  g.lineWidth = 0.8;
+  g.strokeRect(26, 26, w - 52, h - 52);
+  const ink = '#2f2a24';
+  g.fillStyle = ink;
+  g.textAlign = 'center';
+  // maiuscoletto: le lettere già maiuscole nel testo restano grandi, le altre diventano maiuscole piccole
+  const smallCaps = (text: string, y: number, size: number) => {
+    const big = `${size}px ${SERIF}`;
+    const small = `${Math.round(size * 0.74)}px ${SERIF}`;
+    const pieces = [...text].map((ch) => [ch.toUpperCase(), ch === ch.toUpperCase() && ch !== ' ' ? big : small] as const);
+    const width = (t: string, f: string) => {
+      g.font = f;
+      return g.measureText(t).width;
+    };
+    let x = w / 2 - pieces.reduce((sum, [t, f]) => sum + width(t, f), 0) / 2;
+    g.textAlign = 'left';
+    for (const [t, f] of pieces) {
+      g.font = f;
+      g.fillText(t, x, y);
+      x += g.measureText(t).width;
+    }
+    g.textAlign = 'center';
+  };
+  // fregio decorativo in alto (generico)
+  g.strokeStyle = '#8a7a55';
+  g.lineWidth = 1.5;
   g.beginPath();
-  g.arc(w - 120, h - 90, 34, 0, Math.PI * 2);
-  g.fill();
+  g.moveTo(w / 2 - 60, 70);
+  g.lineTo(w / 2 + 60, 70);
+  g.stroke();
+  g.beginPath();
+  g.arc(w / 2, 70, 6, 0, Math.PI * 2);
+  g.stroke();
+  smallCaps('Università degli Studi', 128, 30);
+  smallCaps('di Napoli Federico II', 164, 30);
+  g.font = `18px ${SERIF}`;
+  g.fillText('DIPLOMA DI LAUREA', w / 2, 232);
+  smallCaps('la Laurea di Dottore', 300, 22);
+  g.font = `17px ${SERIF}`;
+  g.fillText('IN', w / 2, 334);
+  smallCaps('Medicina Veterinaria', 372, 26);
+  g.font = `17px ${SERIF}`;
+  g.fillText('È CONFERITA A', w / 2, 420);
+  g.font = `32px ${SERIF}`;
+  g.fillText('Tommaso Santillo', w / 2, 472);
+  // fregio decorativo in basso (generico)
+  g.beginPath();
+  g.moveTo(w / 2 - 90, h - 110);
+  g.lineTo(w / 2 + 90, h - 110);
+  g.stroke();
+  g.font = `italic 13px ${SERIF}`;
+  g.fillStyle = '#6b6152';
+  g.fillText('Napoli', w / 2, h - 80);
 }
 
 function drawXray(g: CanvasRenderingContext2D, w: number, h: number) {
@@ -393,6 +401,59 @@ function FramedPrint({
   );
 }
 
+/**
+ * Pergamena cliccabile: col mouse, passandoci sopra compare un alone luminoso e un clic la apre grande;
+ * da telefono (niente "sopra") si apre con un doppio tocco.
+ */
+function DiplomaFrame({ pos, size, tex }: { pos: [number, number, number]; size: [number, number]; tex: THREE.CanvasTexture }) {
+  const [hover, setHover] = useState(false);
+  const halo = useRef<THREE.Mesh>(null);
+  const lastTap = useRef(0);
+  useFrame(({ clock }) => {
+    const m = halo.current;
+    if (!m) return;
+    const mat = m.material as THREE.MeshBasicMaterial;
+    const target = hover ? 0.45 + 0.2 * Math.sin(clock.elapsedTime * 4) : 0;
+    mat.opacity = THREE.MathUtils.lerp(mat.opacity, target, 0.2);
+    m.visible = mat.opacity > 0.01;
+  });
+  const open = () => useGame.getState().setDiploma((tex.image as HTMLCanvasElement).toDataURL('image/png'));
+  const onClick = (e: ThreeEvent<MouseEvent>) => {
+    e.stopPropagation();
+    const type = (e.nativeEvent as PointerEvent).pointerType ?? 'mouse';
+    if (type === 'mouse') return open();
+    // tocco: serve il doppio tocco ravvicinato
+    const now = performance.now();
+    if (now - lastTap.current < 400) {
+      lastTap.current = 0;
+      open();
+    } else lastTap.current = now;
+  };
+  const [w, h] = size;
+  return (
+    <group
+      onPointerOver={(e) => {
+        e.stopPropagation();
+        if ((e.nativeEvent as PointerEvent).pointerType !== 'mouse') return;
+        setHover(true);
+        document.body.style.cursor = 'pointer';
+      }}
+      onPointerOut={() => {
+        setHover(false);
+        document.body.style.cursor = '';
+      }}
+      onClick={onClick}
+    >
+      {/* alone dietro la cornice */}
+      <mesh ref={halo} position={[pos[0], pos[1], pos[2] + 0.004]} visible={false}>
+        <planeGeometry args={[w + 0.28, h + 0.28]} />
+        <meshBasicMaterial color="#ffe066" transparent opacity={0} toneMapped={false} depthWrite={false} />
+      </mesh>
+      <FramedPrint pos={pos} size={size} tex={tex} />
+    </group>
+  );
+}
+
 /* ---------------------------------------------------------------- stanza */
 
 function Room() {
@@ -449,17 +510,110 @@ function Room() {
   );
 }
 
-/** Finestra con vetro opalino retroilluminato e veneziana: dà luce senza bisogno di un esterno. */
-function FrostedWindow({ pos, size }: { pos: [number, number, number]; size: [number, number] }) {
+/**
+ * Sfondo per lo schermo 4:3 sul bancone a partire da un'immagine quasi quadrata: l'immagine intera al centro
+ * (niente tagli della scritta) e ai lati la stessa immagine ingrandita, sfocata e scurita, come uno sfondo del desktop.
+ */
+function wallpaperTexture(src: THREE.Texture) {
+  const img = src.image as CanvasImageSource & { width: number; height: number };
+  const W = 1024;
+  const H = 738; // proporzioni dello schermo 1,36 × 0,98
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const g = c.getContext('2d')!;
+  g.fillStyle = '#111';
+  g.fillRect(0, 0, W, H);
+  // riempimento ai lati
+  const cover = Math.max(W / img.width, H / img.height);
+  g.filter = 'blur(18px) brightness(0.55)';
+  g.drawImage(img, (W - img.width * cover) / 2, (H - img.height * cover) / 2, img.width * cover, img.height * cover);
+  g.filter = 'none';
+  // immagine intera al centro, con un'ombra leggera
+  const fit = Math.min(W / img.width, H / img.height) * 0.94;
+  const iw = img.width * fit;
+  const ih = img.height * fit;
+  g.shadowColor = 'rgba(0,0,0,0.6)';
+  g.shadowBlur = 24;
+  g.drawImage(img, (W - iw) / 2, (H - ih) / 2, iw, ih);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  return t;
+}
+
+/**
+ * Immagine opzionale (public/clinic/local): se il file non c'è
+ * resta `null` e l'ambulatorio usa il ripiego (finestra opalina, niente poster).
+ */
+function useLocalTexture(url: string) {
+  const [tex, setTex] = useState<THREE.Texture | null>(null);
+  useEffect(() => {
+    let alive = true;
+    fetch(url, { method: 'HEAD' })
+      .then((r) => r.ok && !(r.headers.get('content-type') ?? '').includes('text/html'))
+      .catch(() => false)
+      .then((ok) => {
+        if (!ok || !alive) return;
+        new THREE.TextureLoader().load(url, (t) => {
+          t.colorSpace = THREE.SRGBColorSpace;
+          t.anisotropy = 4;
+          if (alive) setTex(t);
+        });
+      });
+    return () => {
+      alive = false;
+    };
+  }, [url]);
+  return tex;
+}
+
+/**
+ * Finestra con veneziana. Con la foto del Vesuvio (locale) il vetro mostra il panorama, luminoso come un
+ * esterno di giorno e ritagliato sulle proporzioni della finestra; senza, vetro opalino retroilluminato.
+ */
+function FrostedWindow({ pos, size, view }: { pos: [number, number, number]; size: [number, number]; view?: THREE.Texture | null }) {
   const [w, h] = size;
   const slats = 14;
   const frame = { color: '#f4f4f2', roughness: 0.35 } as const;
+  const viewTex = useMemo(() => {
+    if (!view) return null;
+    const t = view.clone();
+    const img = view.image as { width: number; height: number } | undefined;
+    const imgAspect = img ? img.width / img.height : 1.4;
+    const winAspect = w / h;
+    // "cover": riempie il vetro senza deformare, tagliando i lati (o sopra/sotto)
+    if (imgAspect > winAspect) {
+      t.repeat.set(winAspect / imgAspect, 1);
+      t.offset.set((1 - t.repeat.x) / 2, 0);
+    } else {
+      t.repeat.set(1, imgAspect / winAspect);
+      t.offset.set(0, (1 - t.repeat.y) / 2);
+    }
+    t.needsUpdate = true;
+    return t;
+  }, [view, w, h]);
   return (
     <group position={pos}>
-      <mesh position={[0, 0, 0.01]}>
-        <planeGeometry args={[w, h]} />
-        <meshStandardMaterial color="#ffffff" emissive="#eaf3ff" emissiveIntensity={2.2} toneMapped={false} />
-      </mesh>
+      {viewTex ? (
+        <>
+          {/* panorama fuori dalla finestra: non illuminato dalla stanza, un po' più chiaro come la luce del giorno */}
+          <mesh position={[0, 0, 0.01]}>
+            <planeGeometry args={[w, h]} />
+            <meshBasicMaterial map={viewTex} color="#f4f8ff" toneMapped={false} />
+          </mesh>
+          {/* riflesso del vetro */}
+          <mesh position={[0, 0, 0.02]}>
+            <planeGeometry args={[w, h]} />
+            <meshPhysicalMaterial transparent opacity={0.1} roughness={0.05} color="#ffffff" depthWrite={false} />
+          </mesh>
+        </>
+      ) : (
+        <mesh position={[0, 0, 0.01]}>
+          <planeGeometry args={[w, h]} />
+          <meshStandardMaterial color="#ffffff" emissive="#eaf3ff" emissiveIntensity={2.2} toneMapped={false} />
+        </mesh>
+      )}
       {[
         [0, h / 2 + 0.05, w + 0.2, 0.1],
         [0, -h / 2 - 0.05, w + 0.2, 0.1],
@@ -529,7 +683,7 @@ function ExamTable() {
 }
 
 /** Mobile con lavello (laminato bianco + top inox) lungo la parete di fondo, a destra. */
-function Counter() {
+function Counter({ screen }: { screen?: THREE.Texture | null }) {
   const { floor, back, right } = ROOM;
   const x0 = 1.8;
   const w = right - x0;
@@ -608,7 +762,8 @@ function Counter() {
         </RoundedBox>
         <mesh position={[0, 0, 0.036]}>
           <planeGeometry args={[1.36, 0.98]} />
-          <meshStandardMaterial map={xray} emissive="#ffffff" emissiveMap={xray} emissiveIntensity={1.4} toneMapped={false} />
+          {/* schermo acceso: lo sfondo locale se c'è, altrimenti la lastra RX */}
+          <meshStandardMaterial map={screen ?? xray} emissive="#ffffff" emissiveMap={screen ?? xray} emissiveIntensity={screen ? 1.05 : 1.4} toneMapped={false} />
         </mesh>
       </group>
     </group>
@@ -617,20 +772,23 @@ function Counter() {
 
 export function Clinic() {
   const anatomy = useCanvasTexture(600, 840, drawAnatomy);
-  const vaccines = useCanvasTexture(480, 680, drawVaccines);
-  const diploma = useCanvasTexture(640, 460, drawDiploma);
+  const diploma = useCanvasTexture(480, 680, drawDiploma);
+  // immagini opzionali (public/clinic/local): panorama del Vesuvio e sfondo dello schermo sul bancone
+  const vesuvio = useLocalTexture('/clinic/local/vesuvio.jpg');
+  const meme = useLocalTexture('/clinic/local/poster.png');
+  const wallpaper = useMemo(() => (meme ? wallpaperTexture(meme) : null), [meme]);
   const { back, left, right, floor, ceiling } = ROOM;
   const wz = back + 0.001;
   return (
     <group>
       <Room />
       <ExamTable />
-      <Counter />
-      <FrostedWindow pos={[-2.7, 1.85, wz]} size={[2.4, 2.1]} />
+      <Counter screen={wallpaper} />
+      <FrostedWindow pos={[-2.7, 1.85, wz]} size={[2.4, 2.1]} view={vesuvio} />
       <Poster pos={[-0.2, 1.85, wz]} size={[1.06, 1.48]} tex={anatomy} />
-      <Poster pos={[1.05, 1.7, wz]} size={[0.85, 1.2]} tex={vaccines} />
+      {/* pergamena di laurea in cornice, al posto del poster sul protocollo vaccinale */}
+      <DiplomaFrame pos={[1.05, 1.7, wz]} size={[0.8, 1.13]} tex={diploma} />
       <WallClock position={[1.05, 3.25, wz]} />
-      <FramedPrint pos={[right - 0.001, 2.1, -0.5]} size={[1.3, 0.94]} tex={diploma} rotY={-Math.PI / 2} />
       <Prop id="hanging_picture_frame_01" meters={0.84} position={[left + 0.001, 2.2, 1.2]} rotationY={Math.PI / 2} align={['center', 'center', 'min']} />
 
       {/* arredi Poly Haven */}

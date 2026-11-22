@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { EXAMS } from '../../sim/exams';
 import { fmtClock, useSim } from '../../sim/store';
 import { ResultDoc, Source } from '../../sim/types';
+import { num } from '../../sim/format';
 
 export function SourceBadge({ source }: { source: Source }) {
   const label = source === 'documento' ? 'reale' : source === 'generato' ? 'simulato' : 'misto';
@@ -140,7 +141,7 @@ export function TrendChart({
         <g key={v}>
           <line x1={pad.l} x2={W - pad.r} y1={y(v)} y2={y(v)} className="grid" />
           <text x={pad.l - 4} y={y(v) + 3} textAnchor="end" className="lbl">
-            {Number(v.toFixed(1))}
+            {num(Number(v.toFixed(1)))}
           </text>
         </g>
       ))}

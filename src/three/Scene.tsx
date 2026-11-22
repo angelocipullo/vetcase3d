@@ -1,18 +1,20 @@
-import { ContactShadows, Environment, OrbitControls } from '@react-three/drei';
+import { AdaptiveDpr, ContactShadows, Environment, OrbitControls } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import type { ThreeEvent } from '@react-three/fiber';
-import { Suspense, useEffect, useMemo, useRef } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { audio } from '../audio/engine';
 import { HeartSound, LungSound, SyringePhase, TechniqueError, Tool, Vitals } from '../game/types';
-import { cameraViewFor, useGame } from '../store';
-import { CAMERA_VIEWS, ZONES, distanceToVein } from './anatomy';
+import { cameraViewFor, expectedHeart, useGame } from '../store';
+import { CAMERA_VIEWS, THERMO_DEPTH, ZONES, distanceToVein } from './anatomy';
 import { PrelievoKit, PulseFingers } from './Instruments';
-import { CLINIC_HDRI, Clinic } from './Clinic';
+import { CLINIC_HDRI, Clinic, ROOM } from './Clinic';
 import { Cat } from './Cat';
+import { CatModel } from './CatModel';
 import { Dog, dogBark } from './Dog';
 import { Effects } from './Effects';
+import { num } from '../sim/format';
 
 /** Stato del puntatore condiviso a 60fps senza passare da React. */
 const pointer = {
@@ -21,6 +23,29 @@ const pointer = {
   point: new THREE.Vector3(),
   normal: new THREE.Vector3(0, 0, 1),
 };
+
+/** Campo visivo di base della camera (ClinicVisit) e distanza massima dal paziente. */
+const BASE_FOV = 40;
+const MAX_DIST = 4.6;
+const ROOM_MARGIN = 0.4;
+const _dir = new THREE.Vector3();
+
+/**
+ * Quanto ci si può allontanare dal bersaglio lungo `dir` (normalizzata) restando dentro la stanza,
+ * con un margine dalle pareti, dal pavimento e dal soffitto.
+ */
+function roomLimit(target: THREE.Vector3, dir: THREE.Vector3) {
+  const lo = [ROOM.left + ROOM_MARGIN, ROOM.floor + ROOM_MARGIN, ROOM.back + ROOM_MARGIN];
+  const hi = [ROOM.right - ROOM_MARGIN, ROOM.ceiling - ROOM_MARGIN, ROOM.front - ROOM_MARGIN];
+  const t0 = [target.x, target.y, target.z];
+  const d = [dir.x, dir.y, dir.z];
+  let t = Infinity;
+  for (let i = 0; i < 3; i++) {
+    if (d[i] > 1e-6) t = Math.min(t, (hi[i] - t0[i]) / d[i]);
+    else if (d[i] < -1e-6) t = Math.min(t, (lo[i] - t0[i]) / d[i]);
+  }
+  return Math.max(0.3, Math.min(t, MAX_DIST));
+}
 
 function CameraRig() {
   const controls = useRef<OrbitControlsImpl>(null);
@@ -41,9 +66,16 @@ function CameraRig() {
     const target = v.target.clone();
     // sul telefono il soggetto sale sopra i pannelli; il gatto è più basso del cane
     const cat = useGame.getState().visit?.patient.species === 'gatto';
-    if (portrait) target.y -= (view === 'default' ? 0.55 : 0.3) * (cat ? 0.45 : 1);
-    const pos = target.clone().add(v.pos.clone().sub(v.target).multiplyScalar(k));
-    return { pos, target };
+    // (polso: il pannello su telefono è piccolo finché non hai palpato, la mano resta al centro)
+    if (portrait) target.y -= (view === 'default' ? 0.55 : view === 'femoral' ? 0.02 : 0.3) * (cat ? 0.45 : 1);
+    // posizione voluta; se finirebbe fuori dalla stanza (o troppo lontano) la camera si avvicina
+    // e allarga il campo visivo, così l'inquadratura resta la stessa senza uscire dalle pareti
+    const off = v.pos.clone().sub(v.target).multiplyScalar(k);
+    const want = off.length();
+    const dist = Math.min(want, roomLimit(target, _dir.copy(off).normalize()));
+    const pos = target.clone().add(off.setLength(dist));
+    const fov = (2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(BASE_FOV / 2)) * (want / dist)) * 180) / Math.PI;
+    return { pos, target, fov: Math.min(fov, 75) };
   }, [view, fit, portrait]);
 
   useEffect(() => {
@@ -55,8 +87,11 @@ function CameraRig() {
   useEffect(() => {
     const cam = camera as THREE.PerspectiveCamera;
     if (size.width >= 900 && size.height >= 540) {
-      const left = 20 + 96;
-      const right = 20 + 380;
+      // stesse misure del CSS (--gap, --dock-w, --side-w), che ora seguono la larghezza della finestra
+      const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+      const gap = clamp(size.width * 0.016, 12, 20);
+      const left = gap + clamp(size.width * 0.075, 86, 96);
+      const right = gap + clamp(size.width * 0.3, 280, 380);
       cam.setViewOffset(size.width, size.height, (right - left) / 2, 0, size.width, size.height);
     } else {
       cam.clearViewOffset();
@@ -66,13 +101,23 @@ function CameraRig() {
 
   useFrame((_, dt) => {
     const c = controls.current;
-    if (!c || !moving.current) return;
-    const target = goal;
+    if (!c) return;
+    const cam = camera as THREE.PerspectiveCamera;
     const k = 1 - Math.exp(-dt * 4);
-    camera.position.lerp(target.pos, k);
-    c.target.lerp(target.target, k);
-    c.update();
-    if (camera.position.distanceTo(target.pos) < 0.01 && c.target.distanceTo(target.target) < 0.01) moving.current = false;
+    if (Math.abs(cam.fov - goal.fov) > 0.05) {
+      cam.fov += (goal.fov - cam.fov) * k;
+      cam.updateProjectionMatrix();
+    }
+    if (moving.current) {
+      camera.position.lerp(goal.pos, k);
+      c.target.lerp(goal.target, k);
+      c.update();
+      if (camera.position.distanceTo(goal.pos) < 0.01 && c.target.distanceTo(goal.target) < 0.01) moving.current = false;
+    }
+    // mai fuori dalla stanza, nemmeno girando la visuale a mano
+    const off = _dir.copy(camera.position).sub(c.target);
+    const lim = roomLimit(c.target, off.clone().normalize());
+    if (off.length() > lim) camera.position.copy(c.target).add(off.setLength(lim));
   });
 
   const orbit = view === 'default' && tool === Tool.Hand;
@@ -82,10 +127,12 @@ function CameraRig() {
       enabled={orbit}
       enablePan={false}
       minDistance={orbit ? 2 : 0.2}
-      maxDistance={5.5 * fit}
+      maxDistance={Math.max(MAX_DIST, goal.pos.distanceTo(goal.target))}
       minPolarAngle={0.6}
       maxPolarAngle={1.55}
       onStart={() => (moving.current = false)}
+      // mentre si gira la visuale la risoluzione scende un attimo (AdaptiveDpr), poi torna nitida
+      regress
     />
   );
 }
@@ -174,9 +221,9 @@ function Thermometer3D() {
     if (!g) return;
     const t = useGame.getState().thermo;
     depth.current = THREE.MathUtils.damp(depth.current, t.inserted ? 1 : 0, t.inserted ? 3 : 8, dt);
-    // a riposo la punta è 6 cm fuori; inserito la sonda metallica è tutta dentro
-    g.position.copy(ZONES.rectal).addScaledVector(THERMO_AXIS, -0.07 + 0.11 * depth.current);
-    const shown = t.progress > 0 ? (35.5 + (target - 35.5) * (1 - Math.pow(1 - t.progress, 3))).toFixed(1) : '--.-';
+    // a riposo la punta tocca la cute; inserito entra della corsa prevista per la specie
+    g.position.copy(ZONES.rectal).addScaledVector(THERMO_AXIS, THERMO_DEPTH.rest + THERMO_DEPTH.travel * depth.current);
+    const shown = t.progress > 0 ? num(35.5 + (target - 35.5) * (1 - Math.pow(1 - t.progress, 3)), 1) : '--,-';
     if (shown !== lastText.current) {
       lastText.current = shown;
       const ctx = lcd.canvas.getContext('2d')!;
@@ -258,7 +305,7 @@ function GameLoop() {
     const g = useGame.getState();
     if (!g.visit) return;
     if (g.stress > 0 && g.tool !== Tool.Syringe) g.addStress(-dt * 1.2);
-    if (last.current.stress < 75 && g.stress >= 75) audio.whine();
+    if (last.current.stress < 75 && g.stress >= 75) complain();
     last.current.stress = g.stress;
 
     if (g.tool === Tool.Stethoscope && pointer.down && pointer.over) {
@@ -268,6 +315,9 @@ function GameLoop() {
       const gl = THREE.MathUtils.clamp(1 - dl / 0.42, 0, 1);
       // il cuore si sente lievemente su tutto il torace
       audio.setGains(Math.max(gh, gl * 0.18), gl);
+      // ascolto che conta per il reperto: stetoscopio vicino al focolaio
+      const ms = dt * 1000;
+      g.listen(gh > 0.35 ? ms : 0, gl > 0.35 ? ms : 0);
     } else if (g.tool === Tool.Stethoscope && pointer.down) {
       audio.setGains(0, 0);
     }
@@ -275,17 +325,69 @@ function GameLoop() {
   return null;
 }
 
+/** Lamento quando il paziente è stressato o sente dolore: miagolio lamentoso nel gatto, guaito nel cane. */
+function complain() {
+  if (useGame.getState().visit?.patient.species === 'gatto') audio.meow(true);
+  else audio.whine();
+}
+
 /** Suoni di auscultazione coerenti con il caso (FC e FR reali del paziente). */
 function vitalsForAudio(): Vitals {
   const t = useGame.getState().visit!.truth;
-  const heartSound = t.hr > t.hrRange[1] ? HeartSound.Tachycardia : t.hr < t.hrRange[0] ? HeartSound.Bradycardia : HeartSound.Normal;
+  const heartSound = expectedHeart(t);
   return { heartRate: t.hr, heartSound, respRate: t.rr, lungSound: LungSound.Normal, temperature: t.temp };
 }
 
+/**
+ * Ombre della luce principale: la stanza è ferma e la luce pure, si muove solo il paziente (respiro, coda);
+ * la mappa d'ombra si ricalcola un fotogramma su tre invece che a ogni fotogramma.
+ */
+function ShadowThrottle() {
+  const gl = useThree((s) => s.gl);
+  const frame = useRef(0);
+  useEffect(() => {
+    gl.shadowMap.autoUpdate = false;
+    gl.shadowMap.needsUpdate = true;
+    return () => {
+      gl.shadowMap.autoUpdate = true;
+    };
+  }, [gl]);
+  useFrame(() => {
+    if (frame.current++ % 3 === 0) gl.shadowMap.needsUpdate = true;
+  });
+  return null;
+}
+
+/**
+ * Misura i fotogrammi nei primi secondi di visita (dopo un attimo di assestamento): sotto i 45 al secondo
+ * chiama `onSlow` una volta sola.
+ */
+function FpsGuard({ onSlow }: { onSlow: () => void }) {
+  const st = useRef({ t: 0, n: 0, done: false });
+  useFrame((_, dt) => {
+    const s = st.current;
+    if (s.done) return;
+    s.t += dt;
+    if (s.t < 1) return; // il primo secondo carica texture e shader
+    s.n++;
+    if (s.t >= 3) {
+      s.done = true;
+      if (s.n / (s.t - 1) < 45) onSlow();
+    }
+  });
+  return null;
+}
+
+/** Telefono o tablet: niente effetti a schermo intero, la GPU è più piccola. */
+const LOW_POWER = typeof window !== 'undefined' && (window.matchMedia?.('(pointer: coarse)').matches || window.innerWidth < 760);
+
 export function Scene() {
+  const [hq, setHq] = useState(!LOW_POWER);
   const rr = useGame((s) => s.visit?.truth.rr ?? 24);
   const species = useGame((s) => s.visit?.patient.species ?? 'cane');
   const sprite = useGame((s) => s.visit?.sprite);
+  const catGlb = useGame((s) => s.catGlb);
+  const CatComponent = catGlb ? CatModel : Cat;
 
   const updatePointer = (e: ThreeEvent<PointerEvent>) => {
     pointer.over = true;
@@ -305,8 +407,12 @@ export function Scene() {
       case Tool.Hand:
         g.pet();
         if (Math.random() < 0.35) {
-          audio.bark();
-          dogBark();
+          // il gatto miagola, il cane abbaia (con l'animazione)
+          if (g.visit?.patient.species === 'gatto') audio.meow();
+          else {
+            audio.bark();
+            dogBark();
+          }
         }
         break;
       case Tool.Stethoscope:
@@ -346,7 +452,7 @@ export function Scene() {
         if (err) {
           g.addError(err);
           g.addStress(14);
-          audio.whine();
+          complain();
           const msg: Record<string, string> = {
             [TechniqueError.MissedVein]: s.tourniquet ? 'Vena mancata! Mira esattamente sulla linea blu' : 'Vena mancata! Senza laccio la vena non è distesa',
             [TechniqueError.TransfixedVein]: 'Ago troppo inclinato: hai trapassato la vena',
@@ -394,7 +500,7 @@ export function Scene() {
         intensity={1.5}
         color="#fffaf0"
         castShadow
-        shadow-mapSize={[2048, 2048]}
+        shadow-mapSize={[1024, 1024]}
         shadow-bias={-0.0004}
         shadow-normalBias={0.02}
         shadow-camera-left={-6}
@@ -409,11 +515,16 @@ export function Scene() {
         <Clinic />
         <ShaderWarmup />
       </Suspense>
-      <Effects />
+      {/* qualità adattiva: se i fotogrammi sono pochi si spengono gli effetti a schermo intero */}
+      {hq && <FpsGuard onSlow={() => setHq(false)} />}
+      <AdaptiveDpr />
+      <ShadowThrottle />
+      {hq && <Effects />}
       <CameraRig />
-      <ContactShadows position={[0, 0.008, 0]} opacity={0.5} scale={3} blur={2} far={1.2} />
+      {/* ombra morbida sul pavimento: la stanza non si muove, basta calcolarla una volta */}
+      <ContactShadows position={[0, 0.008, 0]} opacity={0.5} scale={3} blur={2} far={1.2} frames={1} resolution={256} />
       {species === 'gatto' && sprite?.kind === 'cat' ? (
-        <Cat
+        <CatComponent
           colors={sprite}
           respRate={rr}
           getMood={() => {

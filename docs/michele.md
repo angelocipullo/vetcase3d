@@ -11,7 +11,7 @@ Codice: `src/sim/cases/michele.ts`.
 
 1. Triage: anemia grave sospetta → manipolazione minima, A-B-C e anamnesi.
 2. Anamnesi: ambiente esterno, lotte, vaccinazioni/test mai fatti, conviventi, grandi funzioni.
-3. Scheda PS: T 39,6 °C, FC 240 (tachicardico, rif. 140–220), FR 44, mucose pallide, TRC 2 s, vigile.
+3. Scheda PS: T 39,6 °C, FC 230 (tachicardico, rif. 140–220), FR 44, mucose pallide, TRC 2 s, vigile.
 4. Quiz: il problema è l'anemia.
 5. Esami: emocromo e SNAP FIV/FeLV (indispensabili), biochimico, gruppo sanguigno, RX/eco per il linfoma. TC ed endoscopia rifiutate (anestesia con HCT 11%).
 6. Quiz: anemia non rigenerativa (reticolociti 8 K/µL con HCT 11,5%, MCV alto).

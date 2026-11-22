@@ -21,7 +21,7 @@
 }
 
 * { box-sizing: border-box; }
-html, body, #root { margin: 0; height: 100%; overflow: hidden; background: #0b232b; }
+html, body, #root { margin: 0; height: 100%; overflow: hidden; background: #17162a; }
 body { overscroll-behavior: none; user-select: none; -webkit-user-select: none; }
 button { font: inherit; color: inherit; border: 0; cursor: pointer; touch-action: manipulation; }
 h1, h2, h3, h4, .brand, .lcd, .score { font-family: 'Baloo 2', 'Nunito', sans-serif; }
@@ -123,7 +123,7 @@ h1, h2, h3, h4, .brand, .lcd, .score { font-family: 'Baloo 2', 'Nunito', sans-se
 .sheet-handle { width: 44px; height: 5px; border-radius: 3px; background: var(--line); margin: 8px auto 0; }
 .sheet-head { display: flex; align-items: center; justify-content: space-between; padding: 6px 16px 0; }
 .sheet-head h2 { margin: 0; font-size: 22px; }
-.sheet-body { overflow-y: auto; padding: 8px 16px 20px; user-select: text; }
+.sheet-body { overflow-y: auto; padding: 8px 16px 20px; }
 
 .card { background: #fff; border: 2px solid var(--line); border-radius: 18px; padding: 12px 14px; margin-top: 10px; }
 .card h4 { margin: 0 0 6px; font-size: 17px; }
@@ -187,8 +187,8 @@ h1, h2, h3, h4, .brand, .lcd, .score { font-family: 'Baloo 2', 'Nunito', sans-se
 /* ---------- title screen ---------- */
 .screen.result {
   background:
-    radial-gradient(900px 500px at 50% -10%, rgba(99, 230, 190, 0.18), transparent 60%),
-    linear-gradient(160deg, #0d2a33 0%, #10343c 45%, #0a1f27 100%);
+    radial-gradient(900px 500px at 50% -10%, rgba(116, 143, 252, 0.18), transparent 60%),
+    linear-gradient(160deg, #1c1a30 0%, #24223a 45%, #141322 100%);
 }
 .result-head { text-align: center; color: #eef7f5; margin: 8px 0 14px; }
 .result-head h1 { margin: 6px 0 0; font-size: 30px; line-height: 1.1; }
@@ -198,9 +198,9 @@ h1, h2, h3, h4, .brand, .lcd, .score { font-family: 'Baloo 2', 'Nunito', sans-se
   display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
   color: #eef7f5; overflow: hidden;
   background:
-    radial-gradient(1200px 700px at 50% -10%, rgba(99, 230, 190, 0.22), transparent 60%),
+    radial-gradient(1200px 700px at 50% -10%, rgba(116, 143, 252, 0.2), transparent 60%),
     radial-gradient(900px 600px at 110% 110%, rgba(77, 171, 247, 0.18), transparent 60%),
-    linear-gradient(160deg, #0d2a33 0%, #10343c 45%, #0a1f27 100%);
+    linear-gradient(160deg, #1c1a30 0%, #24223a 45%, #141322 100%);
 }
 .title-glow {
   position: absolute; inset: 0; pointer-events: none; opacity: 0.07;
@@ -211,9 +211,9 @@ h1, h2, h3, h4, .brand, .lcd, .score { font-family: 'Baloo 2', 'Nunito', sans-se
   -webkit-mask-image: radial-gradient(ellipse at 50% 40%, #000 20%, transparent 75%);
 }
 .title-main { position: relative; display: flex; flex-direction: column; align-items: center; max-width: 760px; width: 100%; padding: 24px 0; animation: pop 0.5s ease-out; }
-.eyebrow { margin: 0; font-size: 12px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; color: #63e6be; }
+.eyebrow { margin: 0; font-size: 12px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; color: #ffd43b; }
 .title-logo { margin: 10px 0 0; font-size: clamp(54px, 11vw, 104px); line-height: 0.95; letter-spacing: -0.02em; color: #fff; text-shadow: 0 10px 40px rgba(0, 0, 0, 0.35); }
-.title-logo span { color: #63e6be; }
+.title-logo span { color: #ffd43b; }
 .title-tagline { margin: 16px 0 0; font-size: clamp(15px, 2.2vw, 19px); line-height: 1.5; color: #b8d4d0; font-weight: 700; }
 
 .start-btn {
@@ -230,9 +230,8 @@ h1, h2, h3, h4, .brand, .lcd, .score { font-family: 'Baloo 2', 'Nunito', sans-se
 .start-btn.ready .start-fill { display: none; }
 .start-btn.ready:hover { transform: translateY(-2px); }
 .start-btn.ready:active { transform: translateY(3px); box-shadow: 0 3px 0 #0ca678, 0 10px 24px rgba(32, 201, 151, 0.3); }
-.title-hint { margin: 14px 0 0; font-size: 13px; color: #7fa8a2; font-weight: 700; min-height: 18px; }
+.title-hint { margin: 14px 0 0; font-size: 13px; color: #9d9ab8; font-weight: 700; min-height: 18px; }
 
-.title-screen .credits { position: relative; color: #6f938e; opacity: 1; margin: 8px 0 0; padding: 0 16px; }
 
 @keyframes breathe { 50% { box-shadow: 0 6px 0 #0ca678, 0 18px 60px rgba(32, 201, 151, 0.55); } }
 
@@ -249,7 +248,7 @@ h1, h2, h3, h4, .brand, .lcd, .score { font-family: 'Baloo 2', 'Nunito', sans-se
   margin-top: 22px; padding: 14px 26px; border: 0; cursor: pointer;
   font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 19px; letter-spacing: 0.02em;
   color: #1d1b2c; background: #fbf6e9; border-radius: 4px;
-  box-shadow: 0 0 0 3px #1d1b2c, 0 0 0 6px #63e6be, 0 6px 0 6px #0ca678;
+  box-shadow: 0 0 0 3px #1d1b2c, 0 0 0 6px #74c0fc, 0 6px 0 6px #1c7ed6;
   transition: transform 0.1s;
   animation: pixelBlink 1.6s steps(2, start) infinite;
 }
@@ -271,14 +270,14 @@ h1, h2, h3, h4, .brand, .lcd, .score { font-family: 'Baloo 2', 'Nunito', sans-se
 /* sala d'attesa: finestra stile RPG (come i dialoghi) con l'elenco dei pazienti */
 .title-main.lobby { max-width: 640px; padding: 16px; }
 .lobby-box { width: 100%; text-align: left; padding: 20px 20px 16px; background: #fbf6e9; color: #1d1b2c; border-radius: 6px; box-shadow: 0 0 0 4px #1d1b2c, 0 0 0 8px #3d3a55, 0 24px 50px rgba(0, 0, 0, 0.45); }
-.lobby-eyebrow { margin: 0; font-size: 12px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #1d8a6e; }
+.lobby-eyebrow { margin: 0; font-size: 12px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #1c5fa8; }
 .lobby-box h2 { margin: 2px 0 0; font-family: 'Baloo 2', sans-serif; font-size: 28px; line-height: 1.1; }
 .lobby-sub { margin: 4px 0 14px; font-size: 14px; color: #5a5040; font-weight: 700; }
 .lobby-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .lobby-pick { width: 100%; display: flex; align-items: center; gap: 14px; padding: 10px 14px 10px 10px; border: 0; cursor: pointer; text-align: left; color: inherit; font: inherit; background: #fff; border-radius: 4px; box-shadow: 0 0 0 2px #1d1b2c; transition: transform 0.1s, background 0.15s; }
-.lobby-pick:hover, .lobby-pick:focus-visible { background: #e6fcf5; transform: translateX(3px); outline: none; }
+.lobby-pick:hover, .lobby-pick:focus-visible { background: #fff3bf; transform: translateX(3px); outline: none; }
 .lobby-pick:hover .lobby-go, .lobby-pick:focus-visible .lobby-go { opacity: 1; }
-.lobby-face { flex-shrink: 0; width: 64px; height: 64px; display: grid; place-items: center; background: #2c5662; border-radius: 4px; box-shadow: inset 0 0 0 2px #1d1b2c; }
+.lobby-face { flex-shrink: 0; width: 64px; height: 64px; display: grid; place-items: center; background: #3d3a55; border-radius: 4px; box-shadow: inset 0 0 0 2px #1d1b2c; }
 .lobby-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .lobby-info b { font-family: 'Baloo 2', sans-serif; font-size: 21px; line-height: 1.05; }
 .lobby-info b small { font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 700; color: #6a5d44; }
@@ -289,7 +288,7 @@ h1, h2, h3, h4, .brand, .lcd, .score { font-family: 'Baloo 2', 'Nunito', sans-se
 .lobby-meta.d1 .lobby-stars { color: #2b8a3e; }
 .lobby-meta.d2 .lobby-stars { color: #e67700; }
 .lobby-meta.d3 .lobby-stars { color: #c92a2a; }
-.lobby-go { font-size: 16px; color: #1d8a6e; opacity: 0.35; transition: opacity 0.15s; }
+.lobby-go { font-size: 16px; color: #1c5fa8; opacity: 0.35; transition: opacity 0.15s; }
 .lobby-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
 .lobby-link { border: 0; background: none; cursor: pointer; font: inherit; font-weight: 800; font-size: 14px; color: #5a5040; padding: 6px 2px; }
 .lobby-foot .start-btn.secondary { margin-top: 0; min-width: 0; padding: 10px 18px; font-size: 14px; color: #1d1b2c; background: #efe6d0; border-color: #d9cfb5; }
@@ -411,16 +410,15 @@ h1, h2, h3, h4, .brand, .lcd, .score { font-family: 'Baloo 2', 'Nunito', sans-se
 
 /* ---------- ambulatorio 3D aperto da una fase del caso (scheda di PS, prelievo) ---------- */
 .clinic-visit { position: fixed; inset: 0; z-index: 35; background: #e9ecec; color: var(--ink); font-family: 'Nunito', system-ui, sans-serif; animation: pop 0.25s ease-out; }
-.clinic-loading { position: absolute; inset: 0; display: grid; place-items: center; background: #0b1f26; color: #d3f9ee; font-family: 'Baloo 2', sans-serif; font-size: 22px; font-weight: 800; z-index: 2; }
+.clinic-loading { position: absolute; inset: 0; display: grid; place-items: center; background: #17162a; color: #fbf6e9; font-family: 'Baloo 2', sans-serif; font-size: 22px; font-weight: 800; z-index: 2; }
 .clinic-face { width: 40px; height: 40px; flex-shrink: 0; display: grid; place-items: center; border-radius: 10px; background: #2c5662; box-shadow: inset 0 0 0 2px #1d1b2c; }
 .clinic-hud .toolbar { grid-template-columns: repeat(5, 1fr); max-height: 46vh; overflow-y: auto; }
 .clinic-hud .tool { position: relative; }
 .clinic-hud .tool.done .ti { opacity: 0.55; }
 .clinic-hud .tool-ok { position: absolute; top: 4px; right: 6px; font-style: normal; font-size: 12px; font-weight: 900; color: #fff; background: #2b8a3e; border-radius: 999px; width: 17px; height: 17px; display: grid; place-items: center; }
-.clinic-hud .tool-win { position: absolute; bottom: 3px; right: 6px; font-style: normal; font-size: 12px; font-weight: 900; color: var(--ink-soft); }
 .clinic-hud .pill.clinic-done { background: #2b8a3e; color: #fff; }
 /* i minigiochi della scheda PS (stile del simulatore, scuro) dentro il pannello dell'ambulatorio */
-.panel.clinic-game { background: #0b1f26; color: #e6f2ef; max-height: 52vh; overflow-y: auto; }
+.panel.clinic-game { background: #24223a; color: #eeedf6; max-height: 52vh; overflow-y: auto; }
 .panel.clinic-game .s-game { gap: 10px; }
 .clinic-tabs { margin-bottom: 4px; }
 @media (min-width: 900px) and (min-height: 540px) {
@@ -429,3 +427,113 @@ h1, h2, h3, h4, .brand, .lcd, .score { font-family: 'Baloo 2', 'Nunito', sans-se
   .clinic-hud .tool .ti { font-size: 22px; }
   .panel.clinic-game { max-height: none; }
 }
+
+/* pergamena di laurea aperta a schermo intero */
+.diploma-view { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: rgba(10, 14, 18, 0.78); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); animation: pop 0.2s ease-out; pointer-events: auto; }
+.diploma-view img { max-width: min(92vw, 560px); max-height: 88vh; width: auto; height: auto; border: 10px solid #2b2b2b; border-radius: 4px; box-shadow: 0 0 0 2px #6b6b6b, 0 24px 60px rgba(0, 0, 0, 0.6); background: #f8f6ee; }
+.diploma-close { position: absolute; top: max(14px, env(safe-area-inset-top)); right: 14px; width: 40px; height: 40px; border-radius: 50%; border: 0; cursor: pointer; background: rgba(255, 255, 255, 0.9); font-size: 18px; font-weight: 900; color: #2b2b2b; }
+
+/* campi numerici senza le frecce di incremento (si scrive il numero) */
+input[type='number'] { -moz-appearance: textfield; appearance: textfield; }
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* da smartphone: tenendo premuto non si seleziona il testo (niente evidenziazione blu né menu "copia");
+   restano selezionabili i campi in cui si scrive */
+html, body { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+*, *::before, *::after { -webkit-tap-highlight-color: transparent; }
+button, svg, canvas, img, .s-gum { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-user-drag: none; }
+input, textarea, select { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
+
+
+/* tasto e finestra dei credits (in basso a destra della schermata iniziale) */
+.credits-btn {
+  position: fixed; right: max(14px, env(safe-area-inset-right)); bottom: max(14px, env(safe-area-inset-bottom)); z-index: 5;
+  padding: 7px 14px; font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 14px;
+  color: #1d1b2c; background: #fbf6e9; border-radius: 4px; box-shadow: 0 0 0 2px #1d1b2c, 0 3px 0 2px #1d1b2c;
+}
+.credits-btn:hover { background: #fff; }
+.credits-btn:active { transform: translateY(2px); }
+.credits-backdrop { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 18px; background: rgba(11, 10, 18, 0.6); animation: pop 0.18s ease-out; }
+.credits-box { width: min(460px, 100%); text-align: left; padding: 20px 20px 12px; background: #fbf6e9; color: #1d1b2c; border-radius: 6px; box-shadow: 0 0 0 4px #1d1b2c, 0 0 0 8px #3d3a55, 0 24px 50px rgba(0, 0, 0, 0.45); }
+.credits-box h2 { margin: 2px 0 10px; font-family: 'Baloo 2', sans-serif; font-size: 28px; line-height: 1.1; }
+.credits-box ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; font-size: 14.5px; line-height: 1.4; }
+.credits-box a { color: #1c5fa8; font-weight: 800; }
+.credits-note { margin: 14px 0 0; font-size: 13px; color: #5a5040; font-weight: 700; font-style: italic; }
+/* ambulatorio 3D: freccia "indietro" e pulsante Cartella in grassetto */
+.clinic-hud .topbar .icon { font-weight: 900; -webkit-text-stroke: 1.2px currentColor; }
+.clinic-hud .side-actions .pill { font-weight: 900; }
+
+/* =====================================================================
+ * Ambulatorio 3D adattivo: barra strumenti, scheda del paziente e pannello
+ * si ridimensionano con la finestra, senza barre di scorrimento.
+ * ===================================================================== */
+.clinic-hud .toolbar { overflow-x: hidden; scrollbar-width: none; }
+.clinic-hud .toolbar::-webkit-scrollbar { display: none; }
+/* telefono / finestra stretta: strumenti più piccoli se lo schermo è basso */
+.clinic-hud .tool { min-width: 0; padding: clamp(3px, 1vh, 8px) 2px; }
+.clinic-hud .tool .ti { font-size: clamp(17px, 3vh, 24px); }
+.clinic-hud .tool .tl { font-size: clamp(9px, 1.4vh, 11px); line-height: 1.1; overflow-wrap: normal; word-break: normal; letter-spacing: -0.01em; }
+
+@media (min-width: 900px) and (min-height: 540px) {
+  /* larghezze proporzionali alla finestra invece che fisse */
+  :root { --dock-w: clamp(86px, 7.5vw, 96px); --side-w: clamp(280px, 30vw, 380px); --gap: clamp(12px, 1.6vw, 20px); }
+  .clinic-hud .topbar { width: clamp(260px, 30vw, 360px); }
+
+  /* dock: tutte le voci entrano sempre in altezza, si rimpiccioliscono invece di scorrere */
+  .clinic-hud .toolbar {
+    display: flex; flex-direction: column; gap: clamp(2px, 0.6vh, 6px);
+    max-height: calc(100vh - 2 * var(--gap) - 80px); overflow: hidden;
+  }
+  .clinic-hud .tool { flex: 0 1 auto; min-height: 0; justify-content: center; padding: clamp(2px, 0.8vh, 9px) 4px; gap: clamp(1px, 0.4vh, 4px); }
+  .clinic-hud .tool .ti { font-size: clamp(16px, 2.6vh, 22px); }
+  .clinic-hud .tool .tl { font-size: clamp(9.5px, 1.35vh, 11.5px); }
+
+  /* pannello a destra: resta nella colonna; se il minigioco è alto scorre solo il suo interno, senza barra visibile */
+  .clinic-hud .bottom > .panel { max-height: 100%; overflow-y: auto; scrollbar-width: none; }
+  .clinic-hud .bottom > .panel::-webkit-scrollbar { display: none; }
+  .clinic-hud .panel { padding: clamp(10px, 1.4vw, 18px); }
+}
+
+/* nei minigiochi dentro l'ambulatorio i pulsanti di scelta vanno a capo invece di uscire dal pannello */
+.clinic-hud .panel .s-seg { flex-wrap: wrap; }
+.clinic-hud .panel .s-seg button { flex: 1 1 auto; min-width: 0; }
+.clinic-hud .panel .s-strip, .clinic-hud .panel svg { max-width: 100%; }
+@media (min-width: 900px) and (min-height: 540px) {
+  /* scheda del paziente: il nome non si sovrappone allo stress quando la scheda è stretta */
+  .clinic-hud .topbar .patient { min-width: 0; flex: 1; }
+  .clinic-hud .topbar .patient b, .clinic-hud .topbar .patient span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .clinic-hud .topbar .patient b { font-size: clamp(16px, 1.6vw, 20px); }
+  .clinic-hud .stress { width: clamp(88px, 8vw, 96px); flex-shrink: 0; }
+  .clinic-hud .stress small { font-size: 10px; letter-spacing: 0.03em; gap: 4px; white-space: nowrap; }
+}
+/* finestra bassa: i minigiochi nel pannello si compattano, così tutto (anche "Registra") resta visibile */
+@media (max-height: 760px) {
+  .clinic-hud .panel .s-game { gap: 8px; }
+  .clinic-hud .panel .s-strip { height: clamp(44px, 10vh, 100px); }
+  .clinic-hud .panel .s-muted { font-size: 12.5px; line-height: 1.35; }
+  .clinic-hud .panel .s-btn { padding: 8px 12px; font-size: 13.5px; }
+  .clinic-hud .panel .s-seg button { padding: 7px 10px; font-size: 13px; }
+  .clinic-hud .panel .s-palp-heart { font-size: 26px; }
+}
+/* telefono: le scritte della barra strumenti (5 colonne) stanno nel loro pulsante */
+@media (max-width: 899px) {
+  .clinic-hud .tool .tl { font-size: clamp(8.5px, 2.5vw, 11px); letter-spacing: -0.02em; max-width: 100%; }
+}
+
+/* pulsante della guida: stesso stile "pill" di Audio e Cartella, con il punto interrogativo rosso in grassetto */
+.clinic-hud .side-actions .help-btn { font-family: 'Baloo 2', sans-serif; font-weight: 900; font-size: 19px; line-height: 1; color: #e03131; }
+.clinic-hud .side-actions .help-btn.on { color: #c92a2a; }
+/* telefono: dopo la palpazione grafico basso e testo breve, così "Registra" resta visibile senza scorrere */
+@media (max-width: 899px) {
+  .clinic-hud .panel.clinic-game { max-height: 60vh; }
+  .clinic-hud .panel .s-strip { height: 54px; }
+  .clinic-hud .panel .s-game { gap: 8px; }
+  .clinic-hud .panel .s-game > .s-muted:first-child { font-size: 12px; line-height: 1.3; }
+  .clinic-hud .panel .s-seg button { padding: 7px 8px; font-size: 13px; }
+}
+/* stessa misura dei pulsanti Audio e Cartella */
+.clinic-hud .side-actions .help-btn { display: grid; place-items: center; min-width: 52px; min-height: 41px; }
+@media (min-width: 900px) and (min-height: 540px) { .clinic-hud .side-actions .help-btn { min-width: 46px; min-height: 40px; } }
+/* guida sempre bianca come Audio e Cartella, anche quando è attiva (lo stato si capisce dai punti sul paziente) */
+.clinic-hud .side-actions .pill.help-btn, .clinic-hud .side-actions .pill.help-btn.on { background: var(--glass); }

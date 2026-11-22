@@ -26,4 +26,18 @@ Animazioni incluse: Bark, Die, Eat, IDdle, Run, Sit, Stand up, Walkl.
 
 ## Gatto
 
-Il gatto dell'ambulatorio 3D non usa file esterni: è un modello semi-realistico costruito in codice (forme scolpite e mantello tigrato generato) (`src/three/Cat.tsx`), con i colori di ciascun caso.
+`cat.glb` è **“calico-cami”** di **Cartoon cat oficial**
+(https://sketchfab.com/3d-models/calico-cami-f26918cfa2964127a93177c2922972e7, autore https://sketchfab.com/21andreypereira),
+con licenza [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
+Modifiche (tutte nel codice, `src/three/CatModel.tsx`): scalato, ruotato e specchiato come il cane; il colore del
+mantello viene tinto con i colori del caso; respiro, coda, testa e tremore sono animati sulle ossa.
+
+Se il file manca si usa il gatto semi-realistico costruito in codice (`src/three/Cat.tsx`).
+
+## Mano (polso femorale)
+
+`hand.glb` è **“the Hand”** di **sayjing** (https://sketchfab.com/3d-models/the-hand-a0bd25ee25544603a8455121aa1242ec,
+autore https://sketchfab.com/sayjing), con licenza **Sketchfab Standard** (https://sketchfab.com/licenses).
+Modifiche (nel codice, `src/three/HandModel.tsx`): colore del guanto, posa delle dita, scala e orientamento,
+polso chiuso. Se il file manca si usa la mano costruita in codice (`src/three/Instruments.tsx`).
