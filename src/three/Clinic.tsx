@@ -543,7 +543,7 @@ function wallpaperTexture(src: THREE.Texture) {
 }
 
 /**
- * Immagine opzionale della copia locale (public/clinic/local, non versionata): se il file non c'è
+ * Immagine opzionale (public/clinic/local): se il file non c'è
  * resta `null` e l'ambulatorio usa il ripiego (finestra opalina, niente poster).
  */
 function useLocalTexture(url: string) {
@@ -773,7 +773,7 @@ function Counter({ screen }: { screen?: THREE.Texture | null }) {
 export function Clinic() {
   const anatomy = useCanvasTexture(600, 840, drawAnatomy);
   const diploma = useCanvasTexture(480, 680, drawDiploma);
-  // immagini della copia locale (non versionate): panorama del Vesuvio e sfondo dello schermo sul bancone
+  // immagini opzionali (public/clinic/local): panorama del Vesuvio e sfondo dello schermo sul bancone
   const vesuvio = useLocalTexture('/clinic/local/vesuvio.jpg');
   const meme = useLocalTexture('/clinic/local/poster.png');
   const wallpaper = useMemo(() => (meme ? wallpaperTexture(meme) : null), [meme]);

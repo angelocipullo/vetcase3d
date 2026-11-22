@@ -34,3 +34,10 @@ Modifiche (tutte nel codice, `src/three/CatModel.tsx`): scalato, ruotato e specc
 mantello viene tinto con i colori del caso; respiro, coda, testa e tremore sono animati sulle ossa.
 
 Se il file manca si usa il gatto semi-realistico costruito in codice (`src/three/Cat.tsx`).
+
+## Mano (polso femorale)
+
+`hand.glb` è **“the Hand”** di **sayjing** (https://sketchfab.com/3d-models/the-hand-a0bd25ee25544603a8455121aa1242ec,
+autore https://sketchfab.com/sayjing), con licenza **Sketchfab Standard** (https://sketchfab.com/licenses).
+Modifiche (nel codice, `src/three/HandModel.tsx`): colore del guanto, posa delle dita, scala e orientamento,
+polso chiuso. Se il file manca si usa la mano costruita in codice (`src/three/Instruments.tsx`).

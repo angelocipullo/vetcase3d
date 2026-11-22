@@ -5,10 +5,9 @@ import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
 
 /**
- * Mano glTF riggata ("the Hand" di sayjing, Sketchfab, licenza Sketchfab Standard), usata per il polso
- * femorale SOLO se `public/models/hand.glb` c'è nella copia locale: la licenza non permette di
- * ridistribuire il file, quindi non è nel repository (vedi `handModelAvailable`). Senza il file resta
- * la mano costruita in codice (Instruments.tsx).
+ * Mano glTF riggata ("the Hand" di sayjing, Sketchfab, licenza Sketchfab Standard; crediti in
+ * public/models/CREDITS.md), usata per il polso femorale se `public/models/hand.glb` c'è
+ * (vedi `handModelAvailable`). Senza il file resta la mano costruita in codice (Instruments.tsx).
  *
  * Nel file le dita guardano +X, il palmo −Y e il pollice −Z, ~1,2 unità dal polso alle punte. Qui la
  * mano è girata con le dita verso −X e il palmo lontano dalla camera, scalata e spostata in modo che le

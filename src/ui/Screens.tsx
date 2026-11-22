@@ -140,7 +140,14 @@ export function TitleScreen() {
                 (CC BY 4.0, modificato)
               </li>
               <li>
-                <b>Ambulatorio</b>: asset CC0 di Poly Haven
+                <b>Mano 3D</b>: “the Hand” di{' '}
+                <a href="https://sketchfab.com/3d-models/the-hand-a0bd25ee25544603a8455121aa1242ec" target="_blank" rel="noreferrer">
+                  sayjing
+                </a>{' '}
+                (Sketchfab, modificata)
+              </li>
+              <li>
+                <b>Ambulatorio</b>: asset CC0 di Poly Haven; panorama del Vesuvio dalla finestra; meme “Ma chi è chist?” sullo schermo (© dei rispettivi titolari)
               </li>
             </ul>
             <p className="credits-note">Didattico, non sostituisce la formazione clinica.</p>

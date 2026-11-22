@@ -10,3 +10,10 @@ Tutti gli asset in questa cartella vengono da [Poly Haven](https://polyhaven.com
   `modern_ceiling_lamp_01`
 
 Poster, diploma e lastra RX sono disegnati via canvas in `src/three/Clinic.tsx`.
+
+## Immagini dell'ambulatorio (`local/`)
+
+- `local/vesuvio.jpg`: foto del Vesuvio usata come panorama della finestra.
+- `local/poster.png`: meme “Ma chi è chist?” (fotogramma dei Simpson, © dei rispettivi titolari), sfondo dello schermo sul bancone.
+
+Se mancano, la finestra torna opalina e lo schermo mostra la lastra RX.

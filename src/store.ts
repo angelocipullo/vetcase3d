@@ -63,7 +63,7 @@ interface GameState {
   visit: Visit | null;
   /** Il gatto glTF (public/models/cat.glb) è disponibile? */
   catGlb: boolean;
-  /** C'è la mano glTF locale per il polso femorale (public/models/hand.glb, non versionata)? */
+  /** C'è la mano glTF per il polso femorale (public/models/hand.glb)? */
   handGlb: boolean;
   tool: Tool;
   /** Lo strumento è stato appoggiato nel punto anatomico giusto (polso femorale). */
@@ -263,7 +263,7 @@ export function cameraViewFor(tool: Tool, thermoActive: boolean, placed: boolean
 
 // gatto glTF: se il file si carica lo si usa; altrimenti resta il gatto costruito in codice (Cat.tsx)
 void catModelAvailable().then((ok) => useGame.setState({ catGlb: ok }));
-// mano glTF: solo nella copia locale (licenza Sketchfab Standard, non ridistribuibile)
+// mano glTF: se il file c'è si usa al posto della mano costruita in codice
 void handModelAvailable().then((ok) => useGame.setState({ handGlb: ok }));
 
 if (import.meta.env.DEV) (window as unknown as { __game: typeof useGame }).__game = useGame;
