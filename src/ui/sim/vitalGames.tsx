@@ -3,6 +3,7 @@ import { useGame } from '../../store';
 import { useSim } from '../../sim/store';
 import { VitalTruth } from '../../sim/types';
 import { TechniqueError } from '../../game/types';
+import { num } from '../../sim/format';
 
 export interface GameProps {
   truth: VitalTruth;
@@ -32,12 +33,12 @@ export function ThermoGame({ truth, onDone }: GameProps) {
   const read = () => {
     const ok = phase === 'beep' && lubed;
     const note = !lubed ? 'Termometro inserito senza lubrificante' : phase !== 'beep' ? 'Letto prima del segnale acustico' : undefined;
-    onDone(`${value.toFixed(1)} °C`, ok, note);
+    onDone(`${num(value, 1)} °C`, ok, note);
   };
   return (
     <div className="s-game">
       <p className="s-muted">Temperatura rettale: lubrifica la punta, inserisci e aspetta il bip prima di leggere.</p>
-      <div className={`s-lcd ${phase === 'beep' ? 'beep' : ''}`}>{phase === 'ready' ? '--.-' : value.toFixed(1)}°</div>
+      <div className={`s-lcd ${phase === 'beep' ? 'beep' : ''}`}>{phase === 'ready' ? '--,-' : num(value, 1)}°</div>
       {phase === 'beep' && <p className="s-beep">BIP · BIP</p>}
       <div className="s-row">
         <button className={`s-btn ${lubed ? 'on' : ''}`} disabled={phase !== 'ready'} onClick={() => setLubed(true)}>

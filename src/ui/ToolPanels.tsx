@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { audio } from '../audio/engine';
 import { HeartSound, LungSound, SyringePhase, TechniqueError, Tool } from '../game/types';
 import { HEART_LABEL, LISTEN_REQUIRED_MS, LUNG_LABEL, useGame } from '../store';
+import { num } from '../sim/format';
 
 function useRaf(cb: (dt: number) => void, active: boolean) {
   const ref = useRef(cb);
@@ -144,7 +145,7 @@ export function ThermometerPanel() {
   return (
     <div className="panel">
       <p className="panel-title">🌡️ Temperatura rettale</p>
-      <div className="lcd">{thermo.progress > 0 ? shown.toFixed(1) : '--.-'} °C</div>
+      <div className="lcd">{thermo.progress > 0 ? num(shown, 1) : '--,-'} °C</div>
       {result === null ? (
         <>
           <div className="steps">
@@ -164,7 +165,7 @@ export function ThermometerPanel() {
         </>
       ) : (
         <button className="primary" onClick={extract}>
-          Estrai e registra · {result.toFixed(1)} °C
+          Estrai e registra · {num(result, 1)} °C
         </button>
       )}
       <div className="meter-track thin">

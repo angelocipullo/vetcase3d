@@ -24,6 +24,7 @@ import { Continue, ResultView, stableShuffle, StageHeader } from './common';
 import { Actor, DialogueBox, RpgMenu, RpgScene, SpeechBubble, voiceFor } from './rpg';
 import { EcoFastGame, FundusGame } from './imagingGames';
 import { DopplerGame, LocGame, MucousGame, prelievoErrorLabel, PulseGame, RespGame, ThermoGame, TrcGame } from './vitalGames';
+import { num as itNum } from '../../sim/format';
 
 /* ================================================================ narrativa */
 function linesFor(stage: NarrativeStage, ctx: ReturnType<typeof useSimCtx>): DialogueLine[] {
@@ -661,8 +662,8 @@ export function AbgView({ stage }: { stage: AbgStage }) {
   const comp = Math.abs(pco2 - expected) <= 4 ? 'compenso respiratorio adeguato' : 'disturbo misto';
   const steps = [
     { q: `Il pH è ${ph}. Indica…`, opts: ['acidemia', 'pH normale', 'alcalemia'], right: phState },
-    { q: `HCO₃⁻ ${hco3} mmol/L, pCO₂ ${pco2} mmHg. Il disturbo primario è…`, opts: ['acidosi metabolica', 'alcalosi metabolica', 'acidosi respiratoria', 'alcalosi respiratoria'], right: primary },
-    { q: `pCO₂ attesa = 40 + 0,7 × (HCO₃⁻ − 24) = ${expected.toFixed(1)} mmHg. Misurata ${pco2}. Quindi…`, opts: ['compenso respiratorio adeguato', 'disturbo misto'], right: comp },
+    { q: `HCO₃⁻ ${itNum(hco3)} mmol/L, pCO₂ ${itNum(pco2)} mmHg. Il disturbo primario è…`, opts: ['acidosi metabolica', 'alcalosi metabolica', 'acidosi respiratoria', 'alcalosi respiratoria'], right: primary },
+    { q: `pCO₂ attesa = 40 + 0,7 × (HCO₃⁻ − 24) = ${itNum(expected, 1)} mmHg. Misurata ${itNum(pco2)}. Quindi…`, opts: ['compenso respiratorio adeguato', 'disturbo misto'], right: comp },
   ];
 
   const answer = (o: string) => {
@@ -695,7 +696,7 @@ export function AbgView({ stage }: { stage: AbgStage }) {
           return (
             <button key={r.label} className={`s-print-row ${cls}`} disabled={part1 !== null} onClick={() => setTapped((t) => (on ? t.filter((x) => x !== r.label) : [...t, r.label]))}>
               <span>{r.label}</span>
-              <span className="v">{r.value} {r.unit}</span>
+              <span className="v">{typeof r.value === 'number' ? itNum(r.value) : r.value} {r.unit}</span>
               <span className="r">{reveal ? r.ref : ''}</span>
             </button>
           );

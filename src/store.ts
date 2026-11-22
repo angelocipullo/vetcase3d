@@ -3,6 +3,7 @@ import { audio } from './audio/engine';
 import { HeartSound, LungSound, SyringePhase, TechniqueError, Tool } from './game/types';
 import { setSpecies, type CameraView } from './three/anatomy';
 import { catModelAvailable } from './three/CatModel';
+import { handModelAvailable } from './three/HandModel';
 import { SIM_CASES } from './sim/cases';
 import { useSim } from './sim/store';
 import type { SimPatient, SpriteSpec, VitalId, VitalTruth } from './sim/types';
@@ -62,6 +63,8 @@ interface GameState {
   visit: Visit | null;
   /** Il gatto glTF (public/models/cat.glb) è disponibile? */
   catGlb: boolean;
+  /** C'è la mano glTF locale per il polso femorale (public/models/hand.glb, non versionata)? */
+  handGlb: boolean;
   tool: Tool;
   /** Lo strumento è stato appoggiato nel punto anatomico giusto (polso femorale). */
   placed: boolean;
@@ -128,6 +131,7 @@ export const useGame = create<GameState>((set, get) => ({
   muted: audio.isMuted(),
   visit: null,
   catGlb: false,
+  handGlb: false,
   tool: Tool.Hand,
   placed: false,
   stress: 20,
@@ -259,5 +263,7 @@ export function cameraViewFor(tool: Tool, thermoActive: boolean, placed: boolean
 
 // gatto glTF: se il file si carica lo si usa; altrimenti resta il gatto costruito in codice (Cat.tsx)
 void catModelAvailable().then((ok) => useGame.setState({ catGlb: ok }));
+// mano glTF: solo nella copia locale (licenza Sketchfab Standard, non ridistribuibile)
+void handModelAvailable().then((ok) => useGame.setState({ handGlb: ok }));
 
 if (import.meta.env.DEV) (window as unknown as { __game: typeof useGame }).__game = useGame;

@@ -279,15 +279,15 @@
 .s-game-head { display: flex; align-items: center; justify-content: space-between; }
 .s-game { display: flex; flex-direction: column; gap: 12px; }
 .s-game > .s-muted { margin: 0; }
-.s-lcd { align-self: center; font-family: 'Baloo 2'; font-size: 46px; font-weight: 800; padding: 2px 26px; border-radius: 14px; background: #0a1a12; color: #94d82d; font-variant-numeric: tabular-nums; }
+.s-lcd { align-self: center; font-family: 'Baloo 2'; font-size: 46px; font-weight: 800; padding: 2px 26px; border-radius: 14px; background: #12111f; color: #94d82d; font-variant-numeric: tabular-nums; }
 .s-lcd.beep { box-shadow: 0 0 0 3px #94d82d; }
 .s-beep { margin: 0; text-align: center; font-weight: 800; color: #94d82d; letter-spacing: 0.2em; }
-.s-strip { width: 100%; height: 100px; background: #07141a; border-radius: 12px; }
+.s-strip { width: 100%; height: 100px; background: #12111f; border-radius: 12px; }
 .s-strip .sec { stroke: rgba(255, 255, 255, 0.12); }
 .s-strip .wave { fill: none; stroke: #ff8787; stroke-width: 2.2; vector-effect: non-scaling-stroke; }
 .s-form { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
 .s-form label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 700; color: var(--tx2); }
-.sim input[type='number'], .sim select { background: #0a1a20; color: var(--tx); border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; font: inherit; font-weight: 800; width: 110px; }
+.sim input[type='number'], .sim select { background: #12111f; color: var(--tx); border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; font: inherit; font-weight: 800; width: 110px; }
 .sim select { width: auto; }
 .sim input[type='range'] { width: 100%; accent-color: var(--acc); }
 .s-calc { margin: 0; font-size: 15px; font-weight: 700; }
@@ -304,7 +304,7 @@
 .s-thorax .chest { fill: #c8a27a; stroke: #7a5a3a; stroke-width: 2; }
 .s-thorax .ribs { fill: none; stroke: rgba(80, 50, 20, 0.45); stroke-width: 2; }
 .s-gum { width: 100%; max-width: 440px; align-self: center; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.35)); }
-.s-gauge { display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 14px; background: #07141a; }
+.s-gauge { display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 14px; background: #12111f; }
 .s-gauge-val { font-family: 'Baloo 2'; font-size: 36px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .s-gauge-val small { font-size: 14px; color: var(--tx2); }
 .s-gauge-track { height: 10px; border-radius: 6px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
@@ -362,7 +362,7 @@
 .s-pump-step h4 { font-size: 15px; }
 .s-pump-step .s-muted { margin: 0; }
 .s-pump { display: flex; flex-direction: column; gap: 8px; }
-.s-pump-lcd { align-self: flex-start; display: flex; align-items: baseline; gap: 6px; padding: 4px 16px; border-radius: 10px; background: #07141a; color: #74c0fc; font-family: 'Baloo 2'; }
+.s-pump-lcd { align-self: flex-start; display: flex; align-items: baseline; gap: 6px; padding: 4px 16px; border-radius: 10px; background: #12111f; color: #74c0fc; font-family: 'Baloo 2'; }
 .s-pump-lcd span { font-size: 34px; font-weight: 800; }
 .s-pump-info { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--tx2); }
 .s-safety { font-weight: 800; padding: 3px 10px; border-radius: 999px; font-size: 13px; }
@@ -375,7 +375,7 @@
 /* monitor */
 .s-monitor { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .s-monitor.mini { grid-template-columns: repeat(3, 1fr); gap: 6px; }
-.s-mon-tile { display: flex; flex-direction: column; padding: 8px 10px; border-radius: 12px; background: #050f13; font-variant-numeric: tabular-nums; border: 1px solid rgba(255, 255, 255, 0.05); }
+.s-mon-tile { display: flex; flex-direction: column; padding: 8px 10px; border-radius: 12px; background: #12111f; font-variant-numeric: tabular-nums; border: 1px solid rgba(255, 255, 255, 0.05); }
 .s-mon-tile small { font-size: 11px; font-weight: 800; letter-spacing: 0.08em; }
 .s-mon-tile b { font-family: 'Baloo 2'; font-size: 30px; line-height: 1; }
 .s-monitor.mini .s-mon-tile b { font-size: 22px; }
@@ -611,3 +611,19 @@
 /* freccia "indietro" e "Cartella" ben marcate */
 .sim .s-x { font-size: 19px; font-weight: 900; -webkit-text-stroke: 1.2px #1d1b2c; line-height: 1; }
 .sim .s-archive, .sim .s-archive-label { font-weight: 900; }
+
+/* riquadro del paziente a sinistra: scorre se serve, ma senza barra visibile */
+.sim .s-side { scrollbar-width: none; }
+.sim .s-side::-webkit-scrollbar { display: none; }
+@media (min-width: 900px) { .sim { grid-template-columns: clamp(210px, 22vw, 250px) minmax(0, 1fr); column-gap: clamp(12px, 1.6vw, 18px); padding: 0 clamp(10px, 1.4vw, 16px); } }
+/* pulsante Continua fisso in basso: una fascia sfumata dello sfondo, così il testo ci scorre sotto e non si sovrappone */
+.sim .s-continue { bottom: 0; margin: 0 -14px; padding: 22px 14px max(10px, env(safe-area-inset-bottom)); background: linear-gradient(to top, var(--bg) 62%, rgba(23, 22, 42, 0)); pointer-events: none; z-index: 2; }
+.sim .s-continue .s-btn { pointer-events: auto; }
+@media (min-width: 900px) { .sim .s-continue { margin: 0 -2px; padding-left: 2px; padding-right: 2px; } }
+/* colonna centrale: scorre, ma senza barra visibile */
+.sim .s-main { scrollbar-width: none; }
+.sim .s-main::-webkit-scrollbar { display: none; }
+/* pulsanti disattivati: grigio-blu pulito invece dell'oro sbiadito */
+.sim .s-btn:disabled, .sim .s-btn.primary:disabled { opacity: 1; background: #3d3a55; color: #9d9ab8; box-shadow: 0 0 0 2px #1d1b2c; }
+/* telefono: il riquadro del paziente aperto non occupa metà schermo */
+@media (max-width: 899px) { .sim .s-banner.open { max-height: 42vh; overflow-y: auto; scrollbar-width: none; } .sim .s-banner.open::-webkit-scrollbar { display: none; } }

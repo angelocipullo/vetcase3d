@@ -463,3 +463,60 @@ input, textarea, select { -webkit-user-select: text; user-select: text; -webkit-
 /* ambulatorio 3D: freccia "indietro" e pulsante Cartella in grassetto */
 .clinic-hud .topbar .icon { font-weight: 900; -webkit-text-stroke: 1.2px currentColor; }
 .clinic-hud .side-actions .pill { font-weight: 900; }
+
+/* =====================================================================
+ * Ambulatorio 3D adattivo: barra strumenti, scheda del paziente e pannello
+ * si ridimensionano con la finestra, senza barre di scorrimento.
+ * ===================================================================== */
+.clinic-hud .toolbar { overflow-x: hidden; scrollbar-width: none; }
+.clinic-hud .toolbar::-webkit-scrollbar { display: none; }
+/* telefono / finestra stretta: strumenti più piccoli se lo schermo è basso */
+.clinic-hud .tool { min-width: 0; padding: clamp(3px, 1vh, 8px) 2px; }
+.clinic-hud .tool .ti { font-size: clamp(17px, 3vh, 24px); }
+.clinic-hud .tool .tl { font-size: clamp(9px, 1.4vh, 11px); line-height: 1.1; overflow-wrap: normal; word-break: normal; letter-spacing: -0.01em; }
+
+@media (min-width: 900px) and (min-height: 540px) {
+  /* larghezze proporzionali alla finestra invece che fisse */
+  :root { --dock-w: clamp(86px, 7.5vw, 96px); --side-w: clamp(280px, 30vw, 380px); --gap: clamp(12px, 1.6vw, 20px); }
+  .clinic-hud .topbar { width: clamp(260px, 30vw, 360px); }
+
+  /* dock: tutte le voci entrano sempre in altezza, si rimpiccioliscono invece di scorrere */
+  .clinic-hud .toolbar {
+    display: flex; flex-direction: column; gap: clamp(2px, 0.6vh, 6px);
+    max-height: calc(100vh - 2 * var(--gap) - 80px); overflow: hidden;
+  }
+  .clinic-hud .tool { flex: 0 1 auto; min-height: 0; justify-content: center; padding: clamp(2px, 0.8vh, 9px) 4px; gap: clamp(1px, 0.4vh, 4px); }
+  .clinic-hud .tool .ti { font-size: clamp(16px, 2.6vh, 22px); }
+  .clinic-hud .tool .tl { font-size: clamp(9.5px, 1.35vh, 11.5px); }
+
+  /* pannello a destra: resta nella colonna; se il minigioco è alto scorre solo il suo interno, senza barra visibile */
+  .clinic-hud .bottom > .panel { max-height: 100%; overflow-y: auto; scrollbar-width: none; }
+  .clinic-hud .bottom > .panel::-webkit-scrollbar { display: none; }
+  .clinic-hud .panel { padding: clamp(10px, 1.4vw, 18px); }
+}
+
+/* nei minigiochi dentro l'ambulatorio i pulsanti di scelta vanno a capo invece di uscire dal pannello */
+.clinic-hud .panel .s-seg { flex-wrap: wrap; }
+.clinic-hud .panel .s-seg button { flex: 1 1 auto; min-width: 0; }
+.clinic-hud .panel .s-strip, .clinic-hud .panel svg { max-width: 100%; }
+@media (min-width: 900px) and (min-height: 540px) {
+  /* scheda del paziente: il nome non si sovrappone allo stress quando la scheda è stretta */
+  .clinic-hud .topbar .patient { min-width: 0; flex: 1; }
+  .clinic-hud .topbar .patient b, .clinic-hud .topbar .patient span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .clinic-hud .topbar .patient b { font-size: clamp(16px, 1.6vw, 20px); }
+  .clinic-hud .stress { width: clamp(88px, 8vw, 96px); flex-shrink: 0; }
+  .clinic-hud .stress small { font-size: 10px; letter-spacing: 0.03em; gap: 4px; white-space: nowrap; }
+}
+/* finestra bassa: i minigiochi nel pannello si compattano, così tutto (anche "Registra") resta visibile */
+@media (max-height: 760px) {
+  .clinic-hud .panel .s-game { gap: 8px; }
+  .clinic-hud .panel .s-strip { height: clamp(44px, 10vh, 100px); }
+  .clinic-hud .panel .s-muted { font-size: 12.5px; line-height: 1.35; }
+  .clinic-hud .panel .s-btn { padding: 8px 12px; font-size: 13.5px; }
+  .clinic-hud .panel .s-seg button { padding: 7px 10px; font-size: 13px; }
+  .clinic-hud .panel .s-palp-heart { font-size: 26px; }
+}
+/* telefono: le scritte della barra strumenti (5 colonne) stanno nel loro pulsante */
+@media (max-width: 899px) {
+  .clinic-hud .tool .tl { font-size: clamp(8.5px, 2.5vw, 11px); letter-spacing: -0.02em; max-width: 100%; }
+}

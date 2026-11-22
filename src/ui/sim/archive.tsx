@@ -5,6 +5,7 @@ import { fmtClock, useSim } from '../../sim/store';
 import { DrugId, InterviewQuestion, ResultDoc, SimCase, VitalId } from '../../sim/types';
 import { ResultView, SourceBadge } from './common';
 import { PixelSprite } from './rpg';
+import { num } from '../../sim/format';
 
 /* =====================================================================
  * Banner laterale (paziente + parametri) e archivio "Cartella clinica".
@@ -291,7 +292,7 @@ function Terapia({ c }: { c: SimCase }) {
             {f.fluid !== 'none' && f.rateMlH > 0 && (
               <tr>
                 <td className="cc-topic">💧 {FLUID_LABEL[f.fluid]}</td>
-                <td>{f.rateMlH} ml/h{f.kclMeqL > 0 && ` + KCl ${f.kclMeqL} mEq/L (${kInfusionRate(therapy, c.disease.kg).toFixed(2)} mEq/kg/h)`}</td>
+                <td>{f.rateMlH} ml/h{f.kclMeqL > 0 && ` + KCl ${f.kclMeqL} mEq/L (${num(kInfusionRate(therapy, c.disease.kg), 2)} mEq/kg/h)`}</td>
                 <td className="cc-time">—</td>
               </tr>
             )}

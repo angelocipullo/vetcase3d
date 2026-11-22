@@ -10,6 +10,7 @@ import { Continue, ResultView, stableShuffle, StageHeader, TrendChart } from './
 import { CtViewer } from './imagingGames';
 import { MENTOR } from '../../sim/cast';
 import { SpeechBubble } from './rpg';
+import { num } from '../../sim/format';
 
 const KCL_STEPS = [0, 20, 28, 40, 60, 80];
 
@@ -94,7 +95,7 @@ export function PumpView({ stage }: { stage: PumpStage }) {
           <div className="s-pump-info">
             <span>Mantenimento ~{maint.toFixed(0)} ml/h</span>
             <span>Max scala {maxRate} ml/h ({scale.maxMlKgH} ml/kg/h)</span>
-            <span className={`s-safety ${tone}`}>K⁺ {meqKgH.toFixed(2)} mEq/kg/h {meqKgH > K_MAX_SAFE ? '⚠ oltre 0,5!' : ''}</span>
+            <span className={`s-safety ${tone}`}>K⁺ {num(meqKgH, 2)} mEq/kg/h {meqKgH > K_MAX_SAFE ? '⚠ oltre 0,5!' : ''}</span>
           </div>
         </div>
       </section>
@@ -158,7 +159,7 @@ function TherapyEditor() {
         </label>
       </div>
       <div className="s-row">
-        <span className={`s-safety ${rate > K_MAX_SAFE ? 'bad' : rate > 0.4 ? 'mid' : 'good'}`}>{rate.toFixed(2)} mEq/kg/h</span>
+        <span className={`s-safety ${rate > K_MAX_SAFE ? 'bad' : rate > 0.4 ? 'mid' : 'good'}`}>{num(rate, 2)} mEq/kg/h</span>
         <button className="s-btn small primary" disabled={!dirty} onClick={() => useSim.getState().setFluids(f)}>Applica</button>
       </div>
       <h4>Farmaci</h4>
@@ -223,7 +224,7 @@ export function MonitorView({ stage }: { stage: MonitorStage }) {
       else notes.push('Il K⁺ non è migliorato rispetto all’inizio della fase.');
     } else {
       if (phys.k >= kMin && phys.k <= kMax) frac += 0.25;
-      else notes.push(`K⁺ attuale ${phys.k.toFixed(1)} mEq/L, fuori dall’intervallo ${kMin}–${kMax}.`);
+      else notes.push(`K⁺ attuale ${num(phys.k, 1)} mEq/L, fuori dall’intervallo ${num(kMin)}–${num(kMax)}.`);
       if (!sbpMax || phys.sbp < sbpMax) frac += 0.15;
       else notes.push(`PAS ancora ${Math.round(phys.sbp)} mmHg.`);
     }
@@ -243,7 +244,7 @@ export function MonitorView({ stage }: { stage: MonitorStage }) {
         <div className="s-mon-tile hr"><small>FC</small><b>{Math.round(phys.hr)}</b><i>bpm</i></div>
         <div className="s-mon-tile rr"><small>FR</small><b>{Math.round(phys.rr)}</b><i>/min</i></div>
         <div className="s-mon-tile bp"><small>PAS</small><b>{Math.round(phys.sbp)}</b><i>mmHg</i></div>
-        <div className="s-mon-tile t"><small>T</small><b>{phys.temp.toFixed(1)}</b><i>°C</i></div>
+        <div className="s-mon-tile t"><small>T</small><b>{num(phys.temp, 1)}</b><i>°C</i></div>
       </div>
       <ul className="s-signs">
         {signs.signs.map((s) => (

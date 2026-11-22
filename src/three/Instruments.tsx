@@ -1,9 +1,10 @@
 import { useFrame } from '@react-three/fiber';
-import { useEffect, useMemo, useRef } from 'react';
+import { Suspense, useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { SyringePhase, Tool } from '../game/types';
 import { useGame } from '../store';
 import { FRONT_LEFT_LEG, VEIN_CURVE, ZONES } from './anatomy';
+import { HandModel } from './HandModel';
 
 /* =====================================================================
  * Strumenti 3D della scheda di PS appoggiati sul modello del paziente:
@@ -44,6 +45,8 @@ function Finger({ len, r, curl }: { len: number; r: number; curl: number }) {
 export function PulseFingers() {
   const show = useGame((s) => s.tool === Tool.Pulse && s.placed);
   const cat = useGame((s) => s.visit?.patient.species === 'gatto');
+  const handGlb = useGame((s) => s.handGlb);
+  const hopRef = useRef(0);
   const fingers = useRef<THREE.Group>(null);
   const hand = useRef<THREE.Group>(null);
   const ring = useRef<THREE.Mesh>(null);
@@ -59,6 +62,7 @@ export function PulseFingers() {
     const age = performance.now() - lastBeat.current;
     // saltello: sale in fretta e ricade più piano
     const hop = age < 0 ? 0 : Math.min(1, age / 45) * Math.exp(-age / 110);
+    hopRef.current = hop;
     if (fingers.current) fingers.current.rotation.z = -0.22 * hop;
     if (hand.current) hand.current.position.y = 0.006 * hop;
     if (ring.current) {
@@ -74,45 +78,59 @@ export function PulseFingers() {
     <>
       {/* la punta delle dita è sull'arteria; la mano sta davanti (craniale, +X) e un po' sotto */}
       {/* ruotata attorno alla verticale: la mano resta verso la camera, le punte entrano verso l'interno coscia */}
-      <group position={[p.x, p.y, p.z - 0.03]} rotation={[0, -0.6, -0.3]} scale={s}>
+      {/* mano glTF: sotto l'inguine, palmo verso la camera, polpastrelli sulla faccia interna della coscia */}
+      <group position={handGlb ? [p.x + 0.03, p.y + (cat ? 0.03 : 0.06), p.z - (cat ? 0.05 : 0.1)] : [p.x, p.y, p.z - 0.03]} rotation={handGlb ? [0, 0, 0] : [0, -0.6, -0.3]} scale={s}>
         <group ref={hand}>
+          {handGlb ? (
+            // mano glTF locale: le dita sono piegate dallo scheletro, il saltello viene da hopRef
+            <Suspense fallback={null}>
+              <HandModel hop={hopRef} />
+            </Suspense>
+          ) : (
+            <>
           {/* indice e medio: si piegano attorno alle nocche (x = 0,12) quando sentono il battito */}
-          <group position={[0.12, 0, 0]}>
-            <group ref={fingers}>
-              <group position={[0, 0.012, 0.012]}>
-                <Finger len={0.115} r={0.0135} curl={0.25} />
+              <group position={[0.12, 0, 0]}>
+                <group ref={fingers}>
+                  <group position={[0, 0.012, 0.012]}>
+                    <Finger len={0.115} r={0.0135} curl={0.25} />
+                  </group>
+                  <group position={[0, -0.014, 0.004]}>
+                    <Finger len={0.128} r={0.0145} curl={0.3} />
+                  </group>
+                </group>
               </group>
-              <group position={[0, -0.014, 0.004]}>
-                <Finger len={0.128} r={0.0145} curl={0.3} />
-              </group>
-            </group>
-          </group>
-          {/* palmo e dorso: ellissoide schiacciato */}
-          <mesh position={[0.168, -0.004, 0.008]} scale={[0.062, 0.036, 0.024]} castShadow>
-            <sphereGeometry args={[1, 24, 16]} />
-            <meshStandardMaterial color={GLOVE} roughness={0.45} />
-          </mesh>
-          {/* anulare e mignolo chiusi sotto il palmo, pollice appoggiato di lato */}
-          {[-0.034, -0.05].map((y, i) => (
-            <mesh key={y} position={[0.118 - i * 0.004, y, 0.004]} rotation={[0, 0, 0.9]} castShadow>
-              <capsuleGeometry args={[0.012, 0.035, 6, 10]} />
-              <meshStandardMaterial color={GLOVE} roughness={0.45} />
-            </mesh>
-          ))}
-          <mesh position={[0.135, 0.03, 0.026]} rotation={[0.5, 0, 2.3]} castShadow>
-            <capsuleGeometry args={[0.013, 0.05, 6, 10]} />
-            <meshStandardMaterial color={GLOVE} roughness={0.45} />
-          </mesh>
-          {/* polso e manica del camice */}
-          <mesh position={[0.25, -0.006, 0.004]} rotation={[0, 0, Math.PI / 2]} castShadow>
-            <cylinderGeometry args={[0.026, 0.03, 0.08, 16]} />
-            <meshStandardMaterial color={GLOVE} roughness={0.45} />
-          </mesh>
-          {/* manica lunga: esce dall'inquadratura, niente taglio a metà schermo */}
-          <mesh position={[0.6, -0.006, 0.004]} rotation={[0, 0, Math.PI / 2]} castShadow>
-            <cylinderGeometry args={[0.05, 0.042, 0.64, 18]} />
-            <meshStandardMaterial color={CUFF} roughness={0.8} />
-          </mesh>
+              {/* palmo e dorso: ellissoide schiacciato */}
+              <mesh position={[0.168, -0.004, 0.008]} scale={[0.062, 0.036, 0.024]} castShadow>
+                <sphereGeometry args={[1, 24, 16]} />
+                <meshStandardMaterial color={GLOVE} roughness={0.45} />
+              </mesh>
+              {/* anulare e mignolo chiusi sotto il palmo, pollice appoggiato di lato */}
+              {[-0.034, -0.05].map((y, i) => (
+                <mesh key={y} position={[0.118 - i * 0.004, y, 0.004]} rotation={[0, 0, 0.9]} castShadow>
+                  <capsuleGeometry args={[0.012, 0.035, 6, 10]} />
+                  <meshStandardMaterial color={GLOVE} roughness={0.45} />
+                </mesh>
+              ))}
+              <mesh position={[0.135, 0.03, 0.026]} rotation={[0.5, 0, 2.3]} castShadow>
+                <capsuleGeometry args={[0.013, 0.05, 6, 10]} />
+                <meshStandardMaterial color={GLOVE} roughness={0.45} />
+              </mesh>
+            </>
+          )}
+          {!handGlb && (
+            <>
+              {/* polso e manica del camice */}
+              <mesh position={[0.25, -0.006, 0.004]} rotation={[0, 0, Math.PI / 2]} castShadow>
+                <cylinderGeometry args={[0.026, 0.03, 0.08, 16]} />
+                <meshStandardMaterial color={GLOVE} roughness={0.45} />
+              </mesh>
+              {/* manica lunga: esce dall'inquadratura, niente taglio a metà schermo */}
+              <mesh position={[0.6, -0.006, 0.004]} rotation={[0, 0, Math.PI / 2]} castShadow>
+                <cylinderGeometry args={[0.05, 0.042, 0.64, 18]} />
+                <meshStandardMaterial color={CUFF} roughness={0.8} />
+              </mesh>
+            </>
+          )}
         </group>
       </group>
       <mesh ref={ring} position={[p.x, p.y, p.z + 0.03]}>
@@ -125,7 +143,8 @@ export function PulseFingers() {
 
 /* ------------------------------------------------------------------ prelievo dalla vena cefalica */
 
-const SHAVED = '#e9bfa8';
+/** Cute rasata: rosa pelle più carico (sotto le luci dell'ambulatorio un rosa chiaro diventava quasi bianco). */
+const SHAVED = '#c98676';
 
 /**
  * Tratto di tubo lungo la vena, da `from` a `to` (0..1 lungo la curva). `sink` lo affonda verso l'interno
@@ -160,7 +179,7 @@ export function PrelievoKit() {
     <>
       {shaved && (
         <mesh geometry={shaved}>
-          <meshStandardMaterial color={SHAVED} roughness={0.7} />
+          <meshStandardMaterial color={SHAVED} roughness={0.9} />
         </mesh>
       )}
       {clipper && (

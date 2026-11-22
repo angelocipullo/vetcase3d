@@ -1,5 +1,5 @@
 import { Canvas } from '@react-three/fiber';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { Tool } from '../game/types';
 import { VITAL_LABEL } from '../sim/exams';
 import { useSim } from '../sim/store';
@@ -223,10 +223,27 @@ function ClinicHUD() {
 export function ClinicVisit() {
   const visit = useGame((s) => s.visit);
   const sceneReady = useGame((s) => s.sceneReady);
+  const box = useRef<HTMLDivElement>(null);
+  // il canvas 3D si ridimensiona sull'evento "resize" della finestra: se cambia solo il contenitore
+  // (pannello ridimensionato, barra degli indirizzi del telefono, zoom) lo si avvisa, così niente fasce vuote
+  useEffect(() => {
+    const el = box.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    let raf = 0;
+    const ro = new ResizeObserver(() => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+    });
+    ro.observe(el);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+    };
+  }, [visit]);
   if (!visit) return null;
   const cam = CAMERA_VIEWS.default.pos;
   return (
-    <div className="clinic-visit">
+    <div className="clinic-visit" ref={box}>
       <Canvas
         shadows
         dpr={[1, 1.5]}
