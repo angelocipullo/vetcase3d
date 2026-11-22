@@ -66,7 +66,8 @@ function CameraRig() {
     const target = v.target.clone();
     // sul telefono il soggetto sale sopra i pannelli; il gatto è più basso del cane
     const cat = useGame.getState().visit?.patient.species === 'gatto';
-    if (portrait) target.y -= (view === 'default' ? 0.55 : 0.3) * (cat ? 0.45 : 1);
+    // (polso: il pannello su telefono è piccolo finché non hai palpato, la mano resta al centro)
+    if (portrait) target.y -= (view === 'default' ? 0.55 : view === 'femoral' ? 0.02 : 0.3) * (cat ? 0.45 : 1);
     // posizione voluta; se finirebbe fuori dalla stanza (o troppo lontano) la camera si avvicina
     // e allarga il campo visivo, così l'inquadratura resta la stessa senza uscire dalle pareti
     const off = v.pos.clone().sub(v.target).multiplyScalar(k);

@@ -223,7 +223,7 @@
 .s-btn.small { padding: 7px 12px; font-size: 13px; }
 .s-btn.big { flex: 1; padding: 22px; font-size: 20px; }
 .s-btn.big small { font-size: 13px; color: var(--tx2); margin-left: 8px; }
-.s-continue { display: flex; justify-content: flex-end; position: sticky; bottom: 8px; }
+.s-continue { display: flex; justify-content: flex-end; }
 .s-continue .s-btn { min-width: 200px; padding: 14px 22px; font-size: 16px; font-weight: 800; letter-spacing: 0.01em; }
 
 /* quiz */
@@ -616,10 +616,6 @@
 .sim .s-side { scrollbar-width: none; }
 .sim .s-side::-webkit-scrollbar { display: none; }
 @media (min-width: 900px) { .sim { grid-template-columns: clamp(210px, 22vw, 250px) minmax(0, 1fr); column-gap: clamp(12px, 1.6vw, 18px); padding: 0 clamp(10px, 1.4vw, 16px); } }
-/* pulsante Continua fisso in basso: una fascia sfumata dello sfondo, così il testo ci scorre sotto e non si sovrappone */
-.sim .s-continue { bottom: 0; margin: 0 -14px; padding: 22px 14px max(10px, env(safe-area-inset-bottom)); background: linear-gradient(to top, var(--bg) 62%, rgba(23, 22, 42, 0)); pointer-events: none; z-index: 2; }
-.sim .s-continue .s-btn { pointer-events: auto; }
-@media (min-width: 900px) { .sim .s-continue { margin: 0 -2px; padding-left: 2px; padding-right: 2px; } }
 /* colonna centrale: scorre, ma senza barra visibile */
 .sim .s-main { scrollbar-width: none; }
 .sim .s-main::-webkit-scrollbar { display: none; }
@@ -627,3 +623,18 @@
 .sim .s-btn:disabled, .sim .s-btn.primary:disabled { opacity: 1; background: #3d3a55; color: #9d9ab8; box-shadow: 0 0 0 2px #1d1b2c; }
 /* telefono: il riquadro del paziente aperto non occupa metà schermo */
 @media (max-width: 899px) { .sim .s-banner.open { max-height: 42vh; overflow-y: auto; scrollbar-width: none; } .sim .s-banner.open::-webkit-scrollbar { display: none; } }
+/* TRC: punto da premere sulla gengiva */
+.gum-target circle { fill: rgba(255, 255, 255, 0.25); stroke: #fff; stroke-width: 1.6; }
+.gum-target .pulse { fill: none; stroke: #ffd43b; stroke-width: 1.4; transform-box: fill-box; transform-origin: center; animation: gumPulse 1.4s ease-out infinite; }
+@keyframes gumPulse { from { transform: scale(1); opacity: 0.95; } to { transform: scale(2.1); opacity: 0; } }
+/* telefono: niente ombre sfumate fisse sopra la chat che scorre */
+@media (max-width: 899px) {
+  .sim .s-side .s-banner { box-shadow: 0 0 0 3px #1d1b2c, 0 0 0 6px #3d3a55; margin: 6px 6px 4px; }
+  .sim .s-side { padding-bottom: 10px; }
+  .sim .s-main { padding-bottom: max(40px, env(safe-area-inset-bottom)); }
+}
+
+/* Continua: nel normale flusso della pagina, subito dopo il contenuto. Niente fascia scura e niente
+   "appiccicato" in fondo: sul telefono si fermava sopra il margine inferiore e copriva le opzioni. */
+.sim .s-continue { position: static; bottom: auto; margin: 14px 0 6px; padding: 0; background: none; pointer-events: auto; z-index: auto; }
+@media (min-width: 900px) { .sim .s-continue { margin: 16px 0 8px; padding: 0; } }

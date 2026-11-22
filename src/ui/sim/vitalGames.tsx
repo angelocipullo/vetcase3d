@@ -80,7 +80,7 @@ function scheduleThump(ctx: AudioContext, at: number) {
   }
 }
 
-export function PulseGame({ truth, onDone, onBeat }: GameProps & { onBeat?: () => void }) {
+export function PulseGame({ truth, onDone, onBeat, embedded }: GameProps & { onBeat?: () => void }) {
   const SECONDS = 6;
   const W = 600;
   const H = 90;
@@ -150,6 +150,22 @@ export function PulseGame({ truth, onDone, onBeat }: GameProps & { onBeat?: () =
         : undefined;
     onDone(`${bpm} bpm, ${cls}`, countOk && cls === real, note);
   };
+  // telefono, dentro l'ambulatorio: finché non hai palpato (e mentre palpi) resta solo il pulsante,
+  // così la mano sulla coscia si vede; il resto della finestra compare a palpazione finita
+  const phone = !!embedded && typeof window !== 'undefined' && !!window.matchMedia?.('(max-width: 899px)').matches;
+  if (phone && (palpating || sweep === 0)) {
+    return (
+      <div className="s-game s-game-compact">
+        <p className="s-muted">{palpating ? 'Conta le pulsazioni: guarda le dita sulla coscia.' : 'Tocca «Palpa» e conta i battiti per 6 secondi.'}</p>
+        <div className="s-palp">
+          <span key={beat} className={`s-palp-heart ${beat ? 'beat' : ''}`} aria-hidden>💗</span>
+          <button className="s-btn primary" disabled={palpating} onClick={palpate}>
+            {palpating ? `Palpazione… ${Math.ceil(SECONDS * (1 - sweep))} s` : '🖐️ Palpa il polso (6 s)'}
+          </button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="s-game">
       <p className="s-muted">Appoggia le dita sull’arteria femorale per 6 secondi: senti e vedi ogni pulsazione. Conta, moltiplica per 10 e classifica la frequenza. Puoi ripetere.</p>
@@ -281,16 +297,51 @@ const pts = (xs: number[], f: (x: number) => number) => xs.map((x) => `${x.toFix
  * e scopre la gengiva sopra canino e premolari. La gengiva ha il colore del caso; la macchia
  * bianca è la pressione del TRC.
  */
-type MouthProps = { color: string; blanch: boolean; trc: number; fur: string; dark: string; muzzle: string };
+type MouthProps = {
+  color: string;
+  blanch: boolean;
+  trc: number;
+  fur: string;
+  dark: string;
+  muzzle: string;
+  /** TRC: la gengiva si preme direttamente (cerchietto che pulsa dove premere). */
+  press?: { down: () => void; up: () => void; target: boolean };
+};
 
-function DogMouth({ color, blanch, trc, fur, dark }: MouthProps) {
+/** Gestori del dito sulla gengiva (mouse e tocco), con il cursore a manina. */
+function pressHandlers(press?: MouthProps['press']) {
+  if (!press) return {};
+  return {
+    onPointerDown: (e: React.PointerEvent) => {
+      e.preventDefault();
+      press.down();
+    },
+    onPointerUp: press.up,
+    onPointerLeave: press.up,
+    onPointerCancel: press.up,
+    style: { cursor: 'pointer', touchAction: 'none' } as React.CSSProperties,
+  };
+}
+
+/** Cerchietto che pulsa sul punto della gengiva da premere (come i punti della guida sul modello 3D). */
+function PressTarget({ cx, cy, r, show }: { cx: number; cy: number; r: number; show: boolean }) {
+  if (!show) return null;
+  return (
+    <g className="gum-target" pointerEvents="none">
+      <circle cx={cx} cy={cy} r={r} />
+      <circle cx={cx} cy={cy} r={r} className="pulse" />
+    </g>
+  );
+}
+
+function DogMouth({ color, blanch, trc, fur, dark, press }: MouthProps) {
   const id = useId().replace(/:/g, '');
   const u = (k: string) => `url(#${id}${k})`;
   const rev = [...LIP_XS].reverse();
   const gum = `M${pts(LIP_XS, lipY)} L${pts(rev, neckY)} Z`;
   const lipBand = `M0 ${lipY(0) - 14} L${pts(LIP_XS, (x) => lipY(x) - 14)} L224 ${lipY(224) - 14} L224 ${lipY(224) + 2} L${pts(rev, (x) => lipY(x) + 1)} L0 ${lipY(0) + 1} Z`;
   return (
-    <svg className="s-gum" viewBox="0 0 240 160" role="img" aria-label="Gengiva del paziente con il labbro sollevato">
+    <svg className="s-gum" viewBox="0 0 240 160" role="img" aria-label="Gengiva del paziente con il labbro sollevato" {...pressHandlers(press)}>
       <defs>
         <linearGradient id={`${id}f`} x1="0" y1="0" x2="0.3" y2="1">
           <stop offset="0" stopColor={fur} />
@@ -357,6 +408,7 @@ function DogMouth({ color, blanch, trc, fur, dark }: MouthProps) {
 
       {/* pressione per il TRC: la gengiva sbianca e poi si ricolora */}
       <ellipse cx={100} cy={78} rx={15} ry={6} fill="#fff" style={{ opacity: blanch ? 0.9 : 0, transition: `opacity ${blanch ? 0.1 : trc}s linear` }} />
+      <PressTarget cx={100} cy={78} r={9} show={!!press?.target} />
 
       {/* denti superiori: premolari a tre cuspidi, canino ricurvo, incisivi */}
       {PREMOLARS.map(([x, w, h]) => {
@@ -423,14 +475,14 @@ const CAT_PREMOLARS: [number, number, number][] = [
   [128, 8, 5],
 ];
 
-function CatMouth({ color, blanch, trc, fur, dark, muzzle }: MouthProps) {
+function CatMouth({ color, blanch, trc, fur, dark, muzzle, press }: MouthProps) {
   const id = useId().replace(/:/g, '');
   const u = (k: string) => `url(#${id}${k})`;
   const rev = [...CAT_XS].reverse();
   const gum = `M${pts(CAT_XS, catLip)} L${pts(rev, catNeck)} Z`;
   const lipBand = `M0 ${catLip(0) - 10} L${pts(CAT_XS, (x) => catLip(x) - 10)} L198 ${catLip(198) - 10} L198 ${catLip(198) + 1} L${pts(rev, (x) => catLip(x) + 1)} L0 ${catLip(0) + 1} Z`;
   return (
-    <svg className="s-gum" viewBox="0 0 240 160" role="img" aria-label="Gengiva del gatto con il labbro sollevato">
+    <svg className="s-gum" viewBox="0 0 240 160" role="img" aria-label="Gengiva del gatto con il labbro sollevato" {...pressHandlers(press)}>
       <defs>
         <linearGradient id={`${id}f`} x1="0" y1="0" x2="0.3" y2="1">
           <stop offset="0" stopColor={fur} />
@@ -493,6 +545,7 @@ function CatMouth({ color, blanch, trc, fur, dark, muzzle }: MouthProps) {
         <path d="M40 78 Q66 72 88 75" fill="none" stroke="#fff" strokeOpacity="0.35" strokeWidth="2.4" strokeLinecap="round" />
         <path d="M54 84 q5 -3 10 1 M118 84 q4 -3 8 0" fill="none" stroke="#7a2232" strokeOpacity="0.2" strokeWidth="0.8" />
         <ellipse cx={100} cy={80} rx={12} ry={5} fill="#fff" style={{ opacity: blanch ? 0.9 : 0, transition: `opacity ${blanch ? 0.1 : trc}s linear` }} />
+        <PressTarget cx={100} cy={80} r={7} show={!!press?.target} />
 
         {/* denti: molare, ferino, premolari piccoli, canino lungo e sottile, incisivi minuscoli */}
         {CAT_PREMOLARS.map(([x, w, h]) => {
@@ -541,13 +594,13 @@ function CatMouth({ color, blanch, trc, fur, dark, muzzle }: MouthProps) {
 }
 
 /** Bocca del paziente del caso: muso di gatto o di cane, con i colori del suo mantello. */
-function Gum({ color, blanch = false, trc = 2 }: { color: string; blanch?: boolean; trc?: number }) {
+function Gum({ color, blanch = false, trc = 2, press }: { color: string; blanch?: boolean; trc?: number; press?: MouthProps['press'] }) {
   const p = useSim((s) => s.caseDef?.cast.patient);
   const species = useSim((s) => s.caseDef?.patient.species);
   const fur = p && 'fur' in p ? p.fur : '#b48c66';
   const dark = p && 'dark' in p ? p.dark : '#7a573b';
   const muzzle = p && 'muzzle' in p && p.muzzle ? p.muzzle : fur;
-  const props = { color, blanch, trc, fur, dark, muzzle };
+  const props = { color, blanch, trc, fur, dark, muzzle, press };
   return species === 'gatto' ? <CatMouth {...props} /> : <DogMouth {...props} />;
 }
 
@@ -583,17 +636,14 @@ export function TrcGame({ truth, onDone }: GameProps) {
   return (
     <div className="s-game">
       <p className="s-muted">
-        Tieni premuto sulla gengiva finché diventa bianca, poi rilascia e conta i secondi finché torna rosa. Puoi ripetere la prova; poi scrivi il tempo stimato.
+        Tieni premuto sulla gengiva, nel cerchietto, finché diventa bianca; poi rilascia e conta i secondi finché torna rosa. Puoi ripetere la prova; poi scrivi il tempo stimato.
       </p>
-      <Gum color={GUM[truth.mucose]} blanch={pressed} trc={truth.trcSec} />
-      <button
-        className={`s-btn ${pressed ? 'on' : ''}`}
-        onPointerDown={() => setPressed(true)}
-        onPointerUp={release}
-        onPointerLeave={release}
-      >
-        👆 Premi (tieni)
-      </button>
+      <Gum
+        color={GUM[truth.mucose]}
+        blanch={pressed}
+        trc={truth.trcSec}
+        press={{ down: () => setPressed(true), up: release, target: !pressed }}
+      />
       <div className="s-form">
         <label>
           TRC (secondi)

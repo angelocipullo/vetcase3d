@@ -117,7 +117,6 @@ function ClinicHUD() {
     if (!t) return setWin(v);
     if (tool !== t) setTool(t);
   };
-  const missing = visit.required.filter((v) => !findings[v]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -160,14 +159,16 @@ function ClinicHUD() {
         <button className="pill" onClick={() => setRecord(true)} title="Cartella clinica">
           🗂️ <span className="pill-label">Cartella</span>
         </button>
-        <button className={`pill ${guided ? 'on' : ''}`} onClick={() => setGuided(!guided)} title="Guida (G)">
-          {guided ? '🎯 Guida on' : '🎯 Guida'}
+        {/* guida: pulsante tondo con il punto interrogativo; acceso = i punti giusti lampeggiano sul paziente */}
+        <button
+          className={`pill help-btn ${guided ? 'on' : ''}`}
+          onClick={() => setGuided(!guided)}
+          title={guided ? 'Guida attiva (G): tocca per spegnerla' : 'Guida (G): mostra dove toccare'}
+          aria-label={guided ? 'Guida attiva' : 'Guida'}
+          aria-pressed={guided}
+        >
+          ?
         </button>
-        {visit.mode === 'vitals' && (
-          <button className="pill clinic-done" onClick={closeVisit}>
-            {missing.length ? `↩ Scheda (mancano ${missing.length})` : '✓ Torna alla scheda'}
-          </button>
-        )}
       </div>
 
       <Toast />

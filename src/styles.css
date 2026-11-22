@@ -520,3 +520,20 @@ input, textarea, select { -webkit-user-select: text; user-select: text; -webkit-
 @media (max-width: 899px) {
   .clinic-hud .tool .tl { font-size: clamp(8.5px, 2.5vw, 11px); letter-spacing: -0.02em; max-width: 100%; }
 }
+
+/* pulsante della guida: stesso stile "pill" di Audio e Cartella, con il punto interrogativo rosso in grassetto */
+.clinic-hud .side-actions .help-btn { font-family: 'Baloo 2', sans-serif; font-weight: 900; font-size: 19px; line-height: 1; color: #e03131; }
+.clinic-hud .side-actions .help-btn.on { color: #c92a2a; }
+/* telefono: dopo la palpazione grafico basso e testo breve, così "Registra" resta visibile senza scorrere */
+@media (max-width: 899px) {
+  .clinic-hud .panel.clinic-game { max-height: 60vh; }
+  .clinic-hud .panel .s-strip { height: 54px; }
+  .clinic-hud .panel .s-game { gap: 8px; }
+  .clinic-hud .panel .s-game > .s-muted:first-child { font-size: 12px; line-height: 1.3; }
+  .clinic-hud .panel .s-seg button { padding: 7px 8px; font-size: 13px; }
+}
+/* stessa misura dei pulsanti Audio e Cartella */
+.clinic-hud .side-actions .help-btn { display: grid; place-items: center; min-width: 52px; min-height: 41px; }
+@media (min-width: 900px) and (min-height: 540px) { .clinic-hud .side-actions .help-btn { min-width: 46px; min-height: 40px; } }
+/* guida sempre bianca come Audio e Cartella, anche quando è attiva (lo stato si capisce dai punti sul paziente) */
+.clinic-hud .side-actions .pill.help-btn, .clinic-hud .side-actions .pill.help-btn.on { background: var(--glass); }
