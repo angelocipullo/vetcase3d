@@ -42,7 +42,6 @@ const MODEL_IDS = [
   'hanging_picture_frame_01',
   'drawer_cabinet',
   'steel_frame_shelves_01',
-  'potted_plant_02',
   'metal_stool_01',
   'mounted_fluorescent_lights',
   'modern_ceiling_lamp_01',
@@ -802,7 +801,6 @@ export function Clinic() {
       {/* arredi Poly Haven */}
       <Prop id="drawer_cabinet" meters={1.88} position={[left + 0.25 * M + 0.02, floor, -1.2]} rotationY={Math.PI / 2} />
       <Prop id="steel_frame_shelves_01" meters={1.9} position={[right - 0.5, floor, 1.6]} rotationY={-Math.PI / 2} />
-      <Prop id="potted_plant_02" meters={0.95} position={[left + 0.75, floor, back + 0.8]} rotationY={0.6} />
       <Prop id="metal_stool_01" meters={0.62} position={[-1.8, floor, 1.5]} />
       {[
         [-2.4, 0],

@@ -13,6 +13,9 @@ import { DOG_TRANSFORM, FRONT_LEFT_LEG, ZONES } from './anatomy';
  */
 export const DOG_URL = '/models/dog.glb';
 
+/** Ossa che girano la testa nell'animazione in piedi: rotazione bloccata sulla posa iniziale. */
+const HEAD_TURN_BONES = /^(NeckPart\d_M|Head_M)_/;
+
 /** Ossa di collo e testa: delle loro tracce teniamo solo la rotazione (vedi `actions`). */
 const STRETCHY_BONES = /^(NeckPart\d_M|Head_M)_/;
 
@@ -97,6 +100,15 @@ export function Dog({ respRate, getMood, ...events }: DogProps) {
       // la gola. Teniamo solo le rotazioni di collo e testa.
       const clip = source.clone();
       clip.tracks = clip.tracks.filter((t) => !(t.name.endsWith('.position') && STRETCHY_BONES.test(t.name)));
+      // In piedi (Idle) il cane girava la testa (~26°) e il collo (~15° per segmento) a ogni ciclo:
+      // collo e testa restano fermi nella posa iniziale, il resto del corpo continua a muoversi appena.
+      if (name === 'IDdle') {
+        clip.tracks = clip.tracks.map((t) =>
+          HEAD_TURN_BONES.test(t.name) && t.name.endsWith('.quaternion')
+            ? new THREE.QuaternionKeyframeTrack(t.name, [0], Array.from(t.values.slice(0, 4)))
+            : t,
+        );
+      }
       out[name] = mixer.clipAction(clip);
     }
     return out;
@@ -104,14 +116,20 @@ export function Dog({ respRate, getMood, ...events }: DogProps) {
 
   useEffect(() => {
     const idle = actions.IDdle;
+    // respirazione/oscillazione di base più lenta e calma: a velocità piena il cane sul tavolo sembrava agitato
+    idle.timeScale = 0.7;
     idle.play();
     const bark = actions.Bark;
     bark.setLoop(THREE.LoopOnce, 1);
+    bark.timeScale = 0.85;
     const onBark = () => {
+      if (bark.isRunning()) return;
       bark.reset();
       bark.time = BARK_WINDOW[0];
-      bark.setEffectiveWeight(1).fadeIn(0.12).play();
-      idle.fadeOut(0.12);
+      // L'abbaio si aggiunge SOPRA la posa in piedi, che resta sempre a peso pieno: three.js completa
+      // con la posa di bind del modello (seduta) ogni volta che la somma dei pesi scende sotto 1, e
+      // con le dissolvenze incrociate il cane si abbassava o si sedeva. Con Idle fisso a 1 non succede.
+      bark.setEffectiveWeight(1.4).fadeIn(0.3).play();
     };
     barkListeners.add(onBark);
     return () => {
@@ -186,8 +204,10 @@ export function Dog({ respRate, getMood, ...events }: DogProps) {
   const savedPos = useRef(new Map<THREE.Object3D, THREE.Vector3>());
   const root = useRef<THREE.Group>(null);
   const tailLift = useRef(0);
+  const tailAmp = useRef(0.08);
+  const jawOpen = useRef(0);
 
-  useFrame(({ clock, pointer }, dt) => {
+  useFrame(({ clock }, dt) => {
     for (const [b, q] of saved.current) b.quaternion.copy(q);
     for (const [b, s] of savedScale.current) b.scale.copy(s);
     for (const [b, p] of savedPos.current) b.position.copy(p);
@@ -206,10 +226,15 @@ export function Dog({ respRate, getMood, ...events }: DogProps) {
     mixer.update(dt);
     // fine dell'abbaio: ci fermiamo sull'ultima posa buona e sfumiamo verso l'Idle (vedi BARK_WINDOW)
     const bark = actions.Bark;
-    if (bark.isRunning() && bark.time >= BARK_WINDOW[1]) {
+    if (bark.isRunning() && !bark.paused && bark.time >= BARK_WINDOW[1]) {
       bark.paused = true;
-      bark.fadeOut(0.3);
-      actions.IDdle.reset().fadeIn(0.3).play();
+      bark.fadeOut(0.5);
+    }
+    // la posa in piedi non deve mai sfumare o fermarsi (vedi onBark)
+    const idleNow = actions.IDdle;
+    if (!idleNow.enabled || !idleNow.isRunning() || idleNow.getEffectiveWeight() < 1) {
+      idleNow.enabled = true;
+      idleNow.setEffectiveWeight(1).play();
     }
     const touched = [bones.jaw, bones.neck, ...bones.tail].filter(Boolean) as THREE.Object3D[];
     for (const b of touched) {
@@ -218,7 +243,7 @@ export function Dog({ respRate, getMood, ...events }: DogProps) {
     }
 
     const t = clock.elapsedTime;
-    const { stress, happyUntil, tailUp, breath = 0.45, still } = getMood();
+    const { stress, happyUntil, tailUp, breath = 0.45 } = getMood();
 
     // respiro: il torace si espande alla frequenza respiratoria del caso; le ossa figlie vengono
     // compensate (scala E posizione) così collo, testa e arti non cambiano né dimensione né posto:
@@ -250,9 +275,10 @@ export function Dog({ respRate, getMood, ...events }: DogProps) {
     const happy = performance.now() < happyUntil;
     const barking = actions.Bark.isRunning();
 
-    // coda: scodinzola tanto se felice, poco se stressato
-    const speed = happy ? 14 : stress > 60 ? 2 : 6;
-    const amp = happy ? 0.35 : stress > 60 ? 0.04 : 0.12;
+    // coda: scodinzola se felice, poco se stressato (velocità e ampiezza moderate, cambi graduali)
+    const speed = happy ? 8 : stress > 60 ? 1.5 : 3.5;
+    tailAmp.current = THREE.MathUtils.damp(tailAmp.current, happy ? 0.26 : stress > 60 ? 0.03 : 0.08, 2.5, dt);
+    const amp = tailAmp.current;
     // coda sollevata per la temperatura rettale (scodinzola meno mentre è su)
     tailLift.current = THREE.MathUtils.damp(tailLift.current, tailUp ? 1 : 0, 3, dt);
     const lift = tailLift.current;
@@ -261,25 +287,22 @@ export function Dog({ respRate, getMood, ...events }: DogProps) {
       rotateWorld(b, WORLD_UP, Math.sin(t * speed - i * 0.6) * amp * (1 + i * 0.3) * (1 - 0.8 * lift));
     });
 
-    // testa: segue un po' il puntatore (ferma mentre si visita, così i punti anatomici restano al loro posto)
-    if (bones.neck && !barking && !still) {
-      rotateWorld(bones.neck, WORLD_UP, THREE.MathUtils.clamp(-pointer.x * 0.35, -0.3, 0.3));
-      rotateWorld(bones.neck, WORLD_SIDE, THREE.MathUtils.clamp(pointer.y * 0.15, -0.1, 0.15));
+    // testa: ferma (niente sguardo che segue il puntatore)
+
+    // ansima solo se felice o con respiro molto frequente: bocca socchiusa, ritmo lento, entra ed esce gradualmente
+    jawOpen.current = THREE.MathUtils.damp(jawOpen.current, !barking && (happy || respRate > 40) ? 1 : 0, 2, dt);
+    if (bones.jaw && jawOpen.current > 0.01) {
+      const br = 0.5 + 0.5 * Math.sin((t * Math.PI * 2 * Math.min(Math.max(respRate, 40), 70)) / 60);
+      rotateWorld(bones.jaw, WORLD_SIDE, -0.1 * br * jawOpen.current);
     }
 
-    // ansima se felice o con frequenza respiratoria alta (al ritmo del respiro)
-    if (bones.jaw && !barking && (happy || respRate > 40)) {
-      const br = 0.5 + 0.5 * Math.sin((t * Math.PI * 2 * Math.max(respRate, 60)) / 60);
-      rotateWorld(bones.jaw, WORLD_SIDE, -0.18 * br);
-    }
-
-    // tremore se stressato
+    // tremore se molto stressato: lieve e non a scatti
     if (root.current) {
-      const tr = stress > 70 ? (stress - 70) / 30 : 0;
-      root.current.position.x = DOG_TRANSFORM.offsetX + Math.sin(t * 60) * 0.004 * tr;
+      const tr = stress > 75 ? (stress - 75) / 25 : 0;
+      root.current.position.x = DOG_TRANSFORM.offsetX + Math.sin(t * 22) * 0.0015 * tr;
       // a ogni inspirazione il dorso si solleva appena
       root.current.position.y = 0.006 * breath * insp;
-      root.current.position.z = Math.cos(t * 53) * 0.003 * tr;
+      root.current.position.z = Math.cos(t * 19) * 0.001 * tr;
     }
   });
 
