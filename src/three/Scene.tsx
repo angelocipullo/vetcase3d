@@ -557,7 +557,7 @@ export function Scene() {
     switch (g.tool) {
       case Tool.Hand:
         g.pet();
-        if (Math.random() < 0.35) {
+        if (Math.random() < 0.2) {
           // il gatto miagola, il cane abbaia (con l'animazione)
           if (g.visit?.patient.species === 'gatto') audio.meow();
           else {
