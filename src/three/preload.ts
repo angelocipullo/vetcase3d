@@ -1,5 +1,8 @@
 import { useEnvironment, useGLTF } from '@react-three/drei';
-import { CLINIC_HDRI, preloadClinic } from './Clinic';
+import { preload } from 'suspend-react';
+import { CLINIC_HDRI, preloadClinic, preloadLocalImages } from './Clinic';
+import { CAT_URL, catModelAvailable } from './CatModel';
+import { HAND_URL, handModelAvailable } from './HandModel';
 import { DOG_URL } from './Dog';
 
 let started = false;
@@ -15,4 +18,10 @@ export function preloadScene() {
   useGLTF.preload(DOG_URL);
   preloadClinic();
   useEnvironment.preload({ files: CLINIC_HDRI });
+  preloadLocalImages();
+  // gatto e mano glTF: si sa subito se ci sono e si scaricano in anticipo
+  preload(catModelAvailable, ['cat-glb']);
+  preload(handModelAvailable, ['hand-glb']);
+  void catModelAvailable().then((ok) => ok && useGLTF.preload(CAT_URL));
+  void handModelAvailable().then((ok) => ok && useGLTF.preload(HAND_URL));
 }

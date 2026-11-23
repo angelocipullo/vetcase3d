@@ -4,6 +4,7 @@ import type { ThreeEvent } from '@react-three/fiber';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useGame } from '../store';
 import * as THREE from 'three';
+import { preload, suspend } from 'suspend-react';
 
 /**
  * Ambulatorio veterinario realistico: materiali PBR (texture Poly Haven, CC0), arredi glTF
@@ -542,30 +543,37 @@ function wallpaperTexture(src: THREE.Texture) {
   return t;
 }
 
+/** Immagini opzionali dell'ambulatorio (public/clinic/local). */
+export const LOCAL_IMAGES = { vesuvio: '/clinic/local/vesuvio.jpg', screen: '/clinic/local/poster.png' } as const;
+
+/** Scarica un'immagine opzionale: `null` se il file non c'è (Vite risponde con index.html ai file mancanti). */
+async function loadLocalTexture(url: string): Promise<THREE.Texture | null> {
+  const ok = await fetch(url, { method: 'HEAD' })
+    .then((r) => r.ok && !(r.headers.get('content-type') ?? '').includes('text/html'))
+    .catch(() => false);
+  if (!ok) return null;
+  try {
+    const t = await new THREE.TextureLoader().loadAsync(url);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 4;
+    return t;
+  } catch {
+    return null;
+  }
+}
+
+/** Avvia in anticipo il download delle immagini opzionali (stessa cache di `useLocalTexture`). */
+export function preloadLocalImages() {
+  for (const url of Object.values(LOCAL_IMAGES)) preload(() => loadLocalTexture(url), ['local-texture', url]);
+}
+
 /**
- * Immagine opzionale (public/clinic/local): se il file non c'è
- * resta `null` e l'ambulatorio usa il ripiego (finestra opalina, niente poster).
+ * Immagine opzionale con Suspense: la scena aspetta che sia pronta (o che risulti mancante) prima di
+ * comparire, così i materiali della finestra e dello schermo non cambiano più dopo il preriscaldamento
+ * degli shader. Se il file non c'è resta `null` e si usa il ripiego (vetro opalino, lastra RX).
  */
 function useLocalTexture(url: string) {
-  const [tex, setTex] = useState<THREE.Texture | null>(null);
-  useEffect(() => {
-    let alive = true;
-    fetch(url, { method: 'HEAD' })
-      .then((r) => r.ok && !(r.headers.get('content-type') ?? '').includes('text/html'))
-      .catch(() => false)
-      .then((ok) => {
-        if (!ok || !alive) return;
-        new THREE.TextureLoader().load(url, (t) => {
-          t.colorSpace = THREE.SRGBColorSpace;
-          t.anisotropy = 4;
-          if (alive) setTex(t);
-        });
-      });
-    return () => {
-      alive = false;
-    };
-  }, [url]);
-  return tex;
+  return suspend(() => loadLocalTexture(url), ['local-texture', url]);
 }
 
 /**
@@ -774,8 +782,8 @@ export function Clinic() {
   const anatomy = useCanvasTexture(600, 840, drawAnatomy);
   const diploma = useCanvasTexture(480, 680, drawDiploma);
   // immagini opzionali (public/clinic/local): panorama del Vesuvio e sfondo dello schermo sul bancone
-  const vesuvio = useLocalTexture('/clinic/local/vesuvio.jpg');
-  const meme = useLocalTexture('/clinic/local/poster.png');
+  const vesuvio = useLocalTexture(LOCAL_IMAGES.vesuvio);
+  const meme = useLocalTexture(LOCAL_IMAGES.screen);
   const wallpaper = useMemo(() => (meme ? wallpaperTexture(meme) : null), [meme]);
   const { back, left, right, floor, ceiling } = ROOM;
   const wz = back + 0.001;

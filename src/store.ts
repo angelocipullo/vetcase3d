@@ -164,6 +164,8 @@ export const useGame = create<GameState>((set, get) => ({
     setSpecies(v.patient.species, get().catGlb);
     set({
       visit: v,
+      // ogni visita apre un nuovo contesto 3D: si ripete il preriscaldamento degli shader (ShaderWarmup)
+      sceneReady: false,
       tool: Tool.Hand,
       placed: false,
       stress: 20,

@@ -7,11 +7,13 @@ import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { audio } from '../audio/engine';
 import { HeartSound, LungSound, SyringePhase, TechniqueError, Tool, Vitals } from '../game/types';
 import { cameraViewFor, expectedHeart, useGame } from '../store';
-import { CAMERA_VIEWS, THERMO_DEPTH, ZONES, distanceToVein } from './anatomy';
+import { CAMERA_VIEWS, THERMO_DEPTH, ZONES, distanceToVein, setSpecies } from './anatomy';
 import { PrelievoKit, PulseFingers } from './Instruments';
 import { CLINIC_HDRI, Clinic, ROOM } from './Clinic';
 import { Cat } from './Cat';
-import { CatModel } from './CatModel';
+import { CatModel, catModelAvailable } from './CatModel';
+import { HandModel, handModelAvailable } from './HandModel';
+import { suspend } from 'suspend-react';
 import { Dog, dogBark } from './Dog';
 import { Effects } from './Effects';
 import { num } from '../sim/format';
@@ -280,22 +282,168 @@ const THERMO_QUAT = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(
  * frame: senza, il primo render blocca il thread principale per qualche secondo. Il Canvas parte con
  * frameloop "never" e viene avviato quando la compilazione è finita.
  */
+/**
+ * Compila tutti gli shader della scena e aspetta che siano davvero pronti.
+ * È `compileAsync` di three.js (r169) con il controllo corretto: three legge `currentProgram.isReady()`
+ * di ogni materiale, ma se un materiale viene eliminato mentre aspetta (React lo sostituisce),
+ * `currentProgram` non c'è più, il controllo va in errore ("reading 'isReady'") e la promessa non si
+ * risolve mai. Qui un materiale senza programma conta come "fatto": non verrà più disegnato.
+ */
+function compileScene(gl: THREE.WebGLRenderer, scene: THREE.Object3D, camera: THREE.Camera) {
+  const materials = gl.compile(scene, camera);
+  const parallel = gl.extensions.get('KHR_parallel_shader_compile') !== null;
+  return new Promise<void>((resolve) => {
+    const check = () => {
+      materials.forEach((m) => {
+        const program = (gl.properties.get(m) as { currentProgram?: { isReady(): boolean } }).currentProgram;
+        if (!program || program.isReady()) materials.delete(m);
+      });
+      if (materials.size === 0) resolve();
+      else setTimeout(check, 10);
+    };
+    // senza l'estensione il controllo blocca: si lascia un attimo al driver prima di chiedere
+    if (parallel) check();
+    else setTimeout(check, 10);
+  });
+}
+
+/** Rete di sicurezza: se la compilazione non finisse (driver difettoso), dopo questo tempo si apre lo stesso. */
+const WARMUP_SAFETY_MS = 20000;
+/** Fotogrammi disegnati dietro la schermata di caricamento dopo la compilazione (ombre, effetti, strumenti). */
+const WARMUP_FRAMES = 4;
+
+/** Fase del preriscaldamento, condivisa tra `ShaderWarmup` e `Prewarm`. */
+const warm = { compiled: false, frames: 0, culled: new Map<THREE.Object3D, boolean>() };
+
+/**
+ * Prepara la scena dietro la schermata "Preparo l'ambulatorio…" e solo alla fine la toglie:
+ * 1. compila tutti gli shader (stanza, paziente e le copie degli strumenti di `Prewarm`) e aspetta che
+ *    siano davvero pronti (`compileScene`);
+ * 2. disegna alcuni fotogrammi: nascono anche i programmi che la sola compilazione non crea
+ *    (mappe d'ombra, effetti a schermo intero), così il primo fotogramma visibile non scatta;
+ * 3. segnala che l'ambulatorio è pronto e `Prewarm` nasconde le copie.
+ * Sta nella stessa Suspense di stanza e strumenti: parte quando modelli, texture e immagini sono già
+ * caricati e i materiali non cambiano più.
+ */
 function ShaderWarmup() {
   const { gl, scene, camera } = useThree();
+  const ready = useRef(false);
   useEffect(() => {
     if (useGame.getState().sceneReady) return;
-    let cancelled = false;
-    const done = () => !cancelled && useGame.getState().setSceneReady();
-    // un frame di margine perché tutti i figli (anche quelli in Suspense) siano montati
+    ready.current = false;
+    warm.compiled = false;
+    warm.frames = 0;
+    let alive = true;
+    const safety = window.setTimeout(() => {
+      if (!alive || useGame.getState().sceneReady) return;
+      console.warn('Preriscaldamento degli shader oltre il tempo massimo: ambulatorio aperto comunque');
+      useGame.getState().setSceneReady();
+    }, WARMUP_SAFETY_MS);
+    // un frame di margine perché tutti i figli siano montati e abbiano i loro materiali
     const id = requestAnimationFrame(() => {
-      gl.compileAsync(scene, camera).then(done, done);
+      compileScene(gl, scene, camera).then(() => {
+        if (alive) warm.compiled = true;
+      });
     });
     return () => {
-      cancelled = true;
+      // smontato prima di finire (es. React in sviluppo monta due volte): al nuovo montaggio si riparte
+      alive = false;
       cancelAnimationFrame(id);
+      window.clearTimeout(safety);
     };
   }, [gl, scene, camera]);
+  // dopo la compilazione: qualche fotogramma disegnato sotto la schermata di caricamento, poi "pronto".
+  // In questi fotogrammi si disegna tutta la stanza, anche ciò che è fuori inquadratura (niente frustum
+  // culling), così nessun materiale resta da preparare quando la camera si sposta (prelievo, termometro…).
+  useFrame(() => {
+    if (ready.current || !warm.compiled || useGame.getState().sceneReady) return;
+    if (warm.frames === 0) {
+      scene.traverse((o) => {
+        if ((o as THREE.Mesh).isMesh) {
+          warm.culled.set(o, o.frustumCulled);
+          o.frustumCulled = false;
+        }
+      });
+    }
+    if (++warm.frames >= WARMUP_FRAMES) {
+      for (const [o, c] of warm.culled) o.frustumCulled = c;
+      warm.culled.clear();
+      ready.current = true;
+      useGame.getState().setSceneReady();
+    }
+  });
   return null;
+}
+
+/**
+ * Copie di ciò che compare solo durante la visita (mano del polso, strumenti, marcatori della guida,
+ * display), davanti alla camera ma coperte dalla schermata di caricamento: vengono compilate e disegnate
+ * durante il preriscaldamento, poi diventano invisibili. Restano montate perché smontarle eliminerebbe i
+ * programmi già pronti; da invisibili non costano nulla nel disegno.
+ */
+function Prewarm() {
+  const hand = suspend(handModelAvailable, ['hand-glb']);
+  const ready = useGame((s) => s.sceneReady);
+  const hop = useRef(0);
+  const group = useRef<THREE.Group>(null);
+  const camera = useThree((s) => s.camera);
+  const tex = useMemo(() => {
+    const t = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.needsUpdate = true;
+    return t;
+  }, []);
+  // finché si prepara la scena, le copie stanno davanti alla camera (così vengono disegnate davvero)
+  useFrame(() => {
+    const g = group.current;
+    if (!g || ready) return;
+    camera.getWorldDirection(_dir);
+    g.position.copy(camera.position).addScaledVector(_dir, 1.2);
+    g.quaternion.copy(camera.quaternion);
+  });
+  const box = <boxGeometry args={[0.04, 0.04, 0.04]} />;
+  return (
+    <group ref={group} visible={!ready}>
+      {hand && (
+        <group scale={0.6}>
+          <HandModel hop={hop} />
+        </group>
+      )}
+      {/* stessi tipi di materiale di termometro, siringa, laccio, dita, marcatori e display */}
+      <mesh position={[-0.1, 0, 0]} castShadow>
+        {box}
+        <meshStandardMaterial />
+      </mesh>
+      <mesh position={[-0.05, 0, 0]}>
+        {box}
+        <meshStandardMaterial transparent opacity={0.5} />
+      </mesh>
+      <mesh position={[0, 0.05, 0]} castShadow>
+        {box}
+        <meshToonMaterial />
+      </mesh>
+      <mesh position={[0.05, 0.05, 0]}>
+        {box}
+        <meshToonMaterial transparent opacity={0.5} />
+      </mesh>
+      <mesh position={[0.1, 0, 0]}>
+        {box}
+        <meshBasicMaterial transparent opacity={0.8} depthTest={false} />
+      </mesh>
+      <mesh position={[0.1, 0.05, 0]}>
+        {box}
+        <meshBasicMaterial map={tex} toneMapped={false} />
+      </mesh>
+      <mesh position={[0.15, 0, 0]}>
+        {box}
+        <meshBasicMaterial map={tex} />
+      </mesh>
+      <mesh position={[0.15, 0.05, 0]}>
+        {box}
+        <meshStandardMaterial map={tex} />
+      </mesh>
+    </group>
+  );
 }
 
 /** Logica di frame: decadimento stress e accumulo tempo di auscultazione. */
@@ -386,7 +534,10 @@ export function Scene() {
   const rr = useGame((s) => s.visit?.truth.rr ?? 24);
   const species = useGame((s) => s.visit?.patient.species ?? 'cane');
   const sprite = useGame((s) => s.visit?.sprite);
-  const catGlb = useGame((s) => s.catGlb);
+  // si aspetta di sapere se c'è il gatto glTF prima di disegnare: niente cambio di modello (e di materiali)
+  // a scena già avviata; i punti anatomici seguono il modello scelto
+  const catGlb = suspend(catModelAvailable, ['cat-glb']);
+  setSpecies(species, catGlb);
   const CatComponent = catGlb ? CatModel : Cat;
 
   const updatePointer = (e: ThreeEvent<PointerEvent>) => {
@@ -513,6 +664,7 @@ export function Scene() {
       <pointLight position={[-2.7, 1.9, -2.6]} intensity={6} distance={8} color="#dbe8ff" />
       <Suspense fallback={null}>
         <Clinic />
+        <Prewarm />
         <ShaderWarmup />
       </Suspense>
       {/* qualità adattiva: se i fotogrammi sono pochi si spengono gli effetti a schermo intero */}
