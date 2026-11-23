@@ -249,7 +249,8 @@ export function ClinicVisit() {
         shadows
         dpr={[1, 1.5]}
         performance={{ min: 0.6 }}
-        frameloop={sceneReady ? 'always' : 'never'}
+        // il 3D lavora già sotto la schermata di caricamento (preriscaldamento: vedi ShaderWarmup)
+        frameloop="always"
         camera={{ position: [cam.x, cam.y, cam.z], fov: 40, near: 0.05, far: 50 }}
         className="canvas"
       >
