@@ -450,6 +450,8 @@ export function OrdersView({ stage }: { stage: OrdersStage }) {
   const [games, setGames] = useState<PendingGame[] | null>(null);
   const [sent, setSent] = useState<ResultDoc[] | null>(null);
   const [rel] = useState(() => dyn(stage.relevance, useSim.getState().ctx()));
+  // esami già refertati prima di questa fase (marcati "già eseguito"): non vanno ripetuti, quindi contano come fatti
+  const [doneBefore] = useState(() => new Set(useSim.getState().results.filter((r) => !r.refused).map((r) => r.exam)));
   const [scored, setScored] = useState<{ pts: number; lines: { exam: ExamId; text: string; tone: string }[] } | null>(null);
 
   const total = cart.reduce((a, e) => a + EXAMS[e].cost, 0);
@@ -500,14 +502,16 @@ export function OrdersView({ stage }: { stage: OrdersStage }) {
     const lines: { exam: ExamId; text: string; tone: string }[] = [];
     for (const [e, r] of Object.entries(rel) as [ExamId, { rel: string; why: string }][]) {
       const chosen = cart.includes(e);
+      const covered = chosen || doneBefore.has(e);
+      const why = !chosen && covered ? `${r.why} (già eseguito)` : r.why;
       if (r.rel === 'essential') {
         max += 10;
-        if (chosen) raw += 10;
-        lines.push({ exam: e, text: r.why, tone: chosen ? 'good' : 'bad' });
+        if (covered) raw += 10;
+        lines.push({ exam: e, text: why, tone: covered ? 'good' : 'bad' });
       } else if (r.rel === 'useful') {
         max += 4;
-        if (chosen) raw += 4;
-        lines.push({ exam: e, text: r.why, tone: chosen ? 'good' : 'muted' });
+        if (covered) raw += 4;
+        lines.push({ exam: e, text: why, tone: covered ? 'good' : 'muted' });
       } else if (r.rel === 'inappropriate' && chosen) {
         raw -= 8;
         lines.push({ exam: e, text: r.why, tone: 'bad' });

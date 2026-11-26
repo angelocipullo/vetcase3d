@@ -223,7 +223,9 @@ export function MonitorView({ stage }: { stage: MonitorStage }) {
       if (phys.k > startState.k + 0.2) frac += 0.4;
       else notes.push('Il K⁺ non è migliorato rispetto all’inizio della fase.');
     } else {
-      if (phys.k >= kMin && phys.k <= kMax) frac += 0.25;
+      // confronto sul valore mostrato (1 decimale): 3,46 appare come 3,5 e deve risultare in range
+      const kShown = Math.round(phys.k * 10) / 10;
+      if (kShown >= kMin && kShown <= kMax) frac += 0.25;
       else notes.push(`K⁺ attuale ${num(phys.k, 1)} mEq/L, fuori dall’intervallo ${num(kMin)}–${num(kMax)}.`);
       if (!sbpMax || phys.sbp < sbpMax) frac += 0.15;
       else notes.push(`PAS ancora ${Math.round(phys.sbp)} mmHg.`);
