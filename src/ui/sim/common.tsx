@@ -36,7 +36,6 @@ export function ResultView({ doc, compact = false }: { doc: ResultDoc; compact?:
     <div className={`s-result ${compact ? 'compact' : ''}`}>
       <div className="s-result-head">
         <b>{doc.title}</b>
-        <SourceBadge source={doc.source} />
         <span className="s-muted s-time">{fmtClock(c, doc.readyAt)}</span>
       </div>
       {doc.rows && (
@@ -46,7 +45,6 @@ export function ResultView({ doc, compact = false }: { doc: ResultDoc; compact?:
               <tr key={r.label} className={r.flag ? 'abn' : ''}>
                 <td>
                   {r.label}
-                  {r.gen && doc.source === 'misto' && <sup title="valore generato">*</sup>}
                 </td>
                 <td className="num">
                   {typeof r.value === 'number' ? r.value.toLocaleString('it-IT') : r.value} <small>{r.unit}</small>{' '}

@@ -677,3 +677,16 @@
 @media (max-width: 520px) {
   .sim .s-btn.primary, .s-game-modal .s-btn.primary, .panel :is(.primary, .hold), .sim .rpg-menu button.s-cta { font-size: 14px; }
 }
+
+/* ================= resoconti: verde giusta, rosso sbagliata, giallo consigliata non scelta ================= */
+.sim .s-review li { padding: 5px 9px; border-radius: 6px; color: #1d1b2c; }
+.sim .s-review li.good { background: #d3f9d8; box-shadow: inset 3px 0 0 #2f9e44; }
+.sim .s-review li.bad { background: #ffe3e3; box-shadow: inset 3px 0 0 #e03131; }
+.sim .s-review li.missed { background: #fff3bf; box-shadow: inset 3px 0 0 #f59f00; }
+.sim .s-review li small { color: #5a5040; }
+.sim .rpg-menu button.missed { background: #fff3bf; border-color: #f59f00; opacity: 1; }
+.sim .s-legend { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; font-size: 12px; }
+.sim .s-legend span { padding: 2px 8px; border-radius: 999px; color: #1d1b2c; font-weight: 700; }
+.sim .s-legend .good { background: #d3f9d8; }
+.sim .s-legend .bad { background: #ffe3e3; }
+.sim .s-legend .missed { background: #fff3bf; }

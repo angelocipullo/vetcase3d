@@ -70,7 +70,7 @@ export const EMANUELE: SimCase = {
       title: 'Una paziente con una lunga storia',
       body:
         'Venerdì 25 settembre, ore 10:19. Entra una signora con Emanuele, pitbull maschio di 4 anni, fulvo scuro, 26 kg. Ha con sé una cartellina piena di referti di altre strutture.\n\n«Da fine giugno ha diarrea e vomito. L’hanno curato per ehrlichia e babesia, ha preso il cortisone, ad agosto è stato pure ricoverato… ma la diarrea non passa: a volte è liquida, con sangue rosso.»\n\n«Adesso mangia, però guardi le gengive: sono bianche.»',
-      bullets: ['Caso reale anonimizzato, difficoltà media.', 'Una storia lunga e piena di diagnosi altrui: rimettila in ordine prima di ripetere esami.'],
+      bullets: ['Difficoltà media.', 'Una storia lunga e piena di diagnosi altrui: rimettila in ordine prima di ripetere esami.'],
       cta: 'Prendi in carico Emanuele',
     },
     {

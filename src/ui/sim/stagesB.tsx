@@ -446,20 +446,14 @@ export function DebriefView({ stage }: { stage: DebriefStage }) {
         </ul>
       </section>
 
-      {c.generated ? (
+      {!c.generated && (
         <section className="s-card">
-          <h4>Origine del caso</h4>
-          <p className="s-muted">Caso interamente generato a scopo didattico: tutti i dati sono simulati, in modo coerente con il quadro clinico.</p>
-        </section>
-      ) : (
-        <section className="s-card">
-          <h4>Il caso reale</h4>
+          <h4>Come è andata</h4>
           <ol className="s-real">
             {c.realCase.map((r) => (
               <li key={r.date}><b>{r.date}</b> {r.text}</li>
             ))}
           </ol>
-          <p className="s-muted">I dati marcati “simulato” non sono nella documentazione originale e sono stati generati in modo coerente con il quadro clinico.</p>
         </section>
       )}
 

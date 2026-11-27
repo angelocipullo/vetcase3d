@@ -76,7 +76,7 @@ export const ALESSANDRO: SimCase = {
       budget: 8,
       points: 20,
       questions: [
-        { id: 'ambiente', topic: 'Ambiente', weight: 'key', source: 'generato', q: 'Vive in casa o esce?', a: 'Esce quasi tutti i giorni, sta fuori anche la notte. Torna spesso con graffi: si picchia con i gatti del quartiere.' },
+        { id: 'ambiente', topic: 'Contatti e lotte', weight: 'key', source: 'generato', q: 'Quando esce, litiga con altri gatti? Torna con morsi o ascessi?', a: 'Sì, sta fuori anche la notte e torna spesso con graffi e morsi: si picchia con i gatti del quartiere. L’anno scorso ha avuto un ascesso sul collo.' },
         { id: 'vaccini', topic: 'Vaccinazioni', weight: 'key', source: 'generato', q: 'È vaccinato? Ha mai fatto test per FIV e FeLV?', a: 'L’abbiamo preso per strada da piccolo. Mai vaccinato e mai fatto test.' },
         { id: 'conviventi', topic: 'Conviventi', weight: 'key', source: 'generato', q: 'Ci sono altri gatti in casa?', a: 'Sì, c’è Bianca, una gatta di 8 anni che non esce mai. Mangiano dalla stessa ciotola.' },
         { id: 'allergie', topic: 'Allergie', weight: 'key', source: 'generato', q: 'Ha allergie note a farmaci o alimenti?', a: 'No, che io sappia.' },

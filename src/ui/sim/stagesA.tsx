@@ -156,7 +156,8 @@ export function QuizView({ stage }: { stage: QuizStage }) {
         <RpgMenu cols={stage.multi ? 1 : 2} className="quiz">
           {options.map((o, i) => {
             const sel = picked.includes(o.id);
-            const cls = result ? (o.score === 1 ? 'right' : sel ? 'wrong' : o.score > 0 ? 'partial' : 'dim') : sel ? 'sel' : '';
+            // resoconto: verde = scelta giusta, rosso = scelta sbagliata, giallo = giusta ma non scelta
+            const cls = result ? (sel ? (o.score === 1 ? 'right' : 'wrong') : o.score === 1 ? 'missed' : 'dim') : sel ? 'sel' : '';
             return (
               <button key={o.id} className={cls} onClick={() => toggle(o.id)} disabled={!!result}>
                 <span className="rpg-letter">{stage.multi ? (sel ? '☑' : '☐') : LETTERS[i]}</span>
@@ -254,13 +255,18 @@ export function InterviewView({ stage }: { stage: InterviewStage }) {
             <h4>Cosa contava</h4>
             <ul>
               {stage.questions
-                .filter((q) => q.weight !== 'irrelevant')
-                .map((q) => (
-                  <li key={q.id} className={asked.includes(q.id) ? 'good' : q.weight === 'key' ? 'bad' : 'muted'}>
-                    {asked.includes(q.id) ? '✓' : '✗'} {q.topic} {q.weight === 'key' ? '' : <small>(utile)</small>}
-                  </li>
-                ))}
+                .filter((q) => q.weight !== 'irrelevant' || asked.includes(q.id))
+                .map((q) => {
+                  const done = asked.includes(q.id);
+                  const tone = q.weight === 'irrelevant' ? 'bad' : done ? 'good' : 'missed';
+                  return (
+                    <li key={q.id} className={tone}>
+                      {tone === 'good' ? '✓' : tone === 'bad' ? '✗' : '•'} {q.weight === 'irrelevant' ? q.q : q.topic} {q.weight === 'useful' && <small>(utile)</small>}
+                    </li>
+                  );
+                })}
             </ul>
+            <ReviewLegend />
             {mine.some((q) => q.weight === 'irrelevant') && <p className="s-muted">Hai speso tempo in domande non pertinenti.</p>}
           </div>
           <Continue onClick={next} />
@@ -507,17 +513,17 @@ export function OrdersView({ stage }: { stage: OrdersStage }) {
       if (r.rel === 'essential') {
         max += 10;
         if (covered) raw += 10;
-        lines.push({ exam: e, text: why, tone: covered ? 'good' : 'bad' });
+        lines.push({ exam: e, text: why, tone: covered ? 'good' : 'missed' });
       } else if (r.rel === 'useful') {
         max += 4;
         if (covered) raw += 4;
-        lines.push({ exam: e, text: why, tone: covered ? 'good' : 'muted' });
+        lines.push({ exam: e, text: why, tone: covered ? 'good' : 'missed' });
       } else if (r.rel === 'inappropriate' && chosen) {
         raw -= 8;
         lines.push({ exam: e, text: r.why, tone: 'bad' });
       } else if (r.rel === 'neutral' && chosen) {
         raw -= 1;
-        lines.push({ exam: e, text: r.why, tone: 'muted' });
+        lines.push({ exam: e, text: r.why, tone: 'bad' });
       }
     }
     const pts = Math.round(stage.points * Math.max(0, raw / max));
@@ -602,6 +608,7 @@ export function OrdersView({ stage }: { stage: OrdersStage }) {
                 </li>
               ))}
             </ul>
+            <ReviewLegend />
           </div>
           {pending.length > 0 && (
             <div className="s-pending">
@@ -739,5 +746,14 @@ export function AbgView({ stage }: { stage: AbgStage }) {
         </>
       )}
     </div>
+  );
+}
+
+/** Legenda dei colori dei resoconti. */
+function ReviewLegend() {
+  return (
+    <p className="s-legend">
+      <span className="good">giusta</span> <span className="bad">sbagliata</span> <span className="missed">consigliata, non scelta</span>
+    </p>
   );
 }

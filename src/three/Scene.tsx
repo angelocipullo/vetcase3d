@@ -598,8 +598,8 @@ export function Scene() {
         const d = distanceToVein(e.point);
         let err: TechniqueError | null = null;
         if (d > tol) err = TechniqueError.MissedVein;
-        else if (s.angle > 40) err = TechniqueError.TransfixedVein;
-        else if (s.angle < 12) err = TechniqueError.NeedleTooFlat;
+        else if (s.angle > 55) err = TechniqueError.TransfixedVein;
+        else if (s.angle < 35) err = TechniqueError.NeedleTooFlat;
         if (err) {
           g.addError(err);
           g.addStress(14);

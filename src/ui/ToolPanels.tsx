@@ -239,7 +239,7 @@ export function SyringePanel() {
   }
 
   if (s.phase === SyringePhase.Insert) {
-    const ok = s.angle >= 15 && s.angle <= 30;
+    const ok = s.angle >= 40 && s.angle <= 50;
     return (
       <div className="panel">
         <p className="panel-title">Inclina l’ago, poi tocca la vena blu</p>

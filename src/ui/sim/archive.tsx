@@ -3,7 +3,7 @@ import { DRUGS, EXAMS, FLUID_LABEL, VITAL_LABEL } from '../../sim/exams';
 import { clinicalSigns, kInfusionRate } from '../../sim/physiology';
 import { fmtClock, useSim } from '../../sim/store';
 import { DrugId, InterviewQuestion, ResultDoc, SimCase, VitalId } from '../../sim/types';
-import { ResultView, SourceBadge } from './common';
+import { ResultView } from './common';
 import { PixelSprite } from './rpg';
 import { num } from '../../sim/format';
 
@@ -160,7 +160,6 @@ function Frontespizio({ c }: { c: SimCase }) {
       </dl>
       <h3>Motivo della visita</h3>
       <p className="cc-text">{capitalize(c.complaint)}</p>
-      <p className="cc-note">Dati del proprietario omessi (caso didattico anonimizzato).</p>
     </section>
   );
 }
@@ -187,7 +186,7 @@ function Anamnesi({ c }: { c: SimCase }) {
                 <td className="cc-topic">{q.topic === '—' ? 'Altro' : q.topic}</td>
                 <td>{q.q}</td>
                 <td>
-                  {q.a} {q.source === 'generato' && <SourceBadge source="generato" />}
+                  {q.a}
                 </td>
               </tr>
             ))}
