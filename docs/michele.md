@@ -1,4 +1,4 @@
-# Michele: gatto con FeLV (caso generato)
+# Alessandro: gatto con FeLV (caso generato)
 
 Caso **interamente generato** a scopo didattico (nessuna documentazione reale), di difficoltà facile.
 Codice: `src/sim/cases/michele.ts`.
@@ -17,7 +17,7 @@ Codice: `src/sim/cases/michele.ts`.
 6. Quiz: anemia non rigenerativa (reticolociti 8 K/µL con HCT 11,5%, MCV alto).
 7. Quiz: interpretazione del p27 positivo (infezione progressiva probabile, conferma con PCR).
 8. Quiz: prima della trasfusione si tipizza SEMPRE il gruppo (alloanticorpi naturali). Dopo: HCT 19%.
-9. Gestione (scelta multipla): isolamento, test e vaccino per la convivente, castrazione, doxiciclina in attesa della PCR per Mycoplasma. Distrattori: eutanasia immediata, vaccinare Michele, cortisone.
+9. Gestione (scelta multipla): isolamento, test e vaccino per la convivente, castrazione, doxiciclina in attesa della PCR per Mycoplasma. Distrattori: eutanasia immediata, vaccinare Alessandro, cortisone.
 10. Debriefing con diagnosi finale a scelta multipla.
 
 ## Dati generati principali

@@ -555,7 +555,7 @@
 .s-strip .cursor { stroke: var(--acc); stroke-width: 2; vector-effect: non-scaling-stroke; }
 
 /* ingresso nell ambulatorio 3D dalla scheda di PS */
-.s-enter3d { width: 100%; margin: 4px 0 12px; font-size: 16px; padding: 14px 16px; }
+.s-enter3d, .sim .s-btn.s-enter3d { width: 100%; margin: 4px 0 12px; font-size: 16px; padding: 14px 16px; font-weight: 800; }
 
 /* finestre aperte sopra l ambulatorio 3D */
 .s-game-modal.over-clinic { z-index: 45; }
@@ -638,3 +638,42 @@
    "appiccicato" in fondo: sul telefono si fermava sopra il margine inferiore e copriva le opzioni. */
 .sim .s-continue { position: static; bottom: auto; margin: 14px 0 6px; padding: 0; background: none; pointer-events: auto; z-index: auto; }
 @media (min-width: 900px) { .sim .s-continue { margin: 16px 0 8px; padding: 0; } }
+
+/* ================= bottoni uniformi =================
+   Ogni bottone d'azione ha lo stile di «Invia richieste»: giallo, inchiostro scuro, bordo pixel, Nunito in grassetto.
+   Vale per il simulatore (.sim), per le finestre dei giochi e per i pannelli dell'ambulatorio 3D (.panel). */
+.sim .s-btn.primary,
+.s-game-modal .s-btn.primary,
+.panel :is(.primary, .hold),
+.sim .rpg-menu button.s-cta {
+  background: #ffd43b; color: #1d1b2c; border: 0; border-radius: 16px;
+  font-family: Nunito, system-ui, sans-serif; font-weight: 800; font-size: 16px;
+  box-shadow: 0 0 0 2px #1d1b2c, 0 4px 0 2px #1d1b2c; text-align: center;
+}
+.sim .s-btn.primary:hover:not(:disabled),
+.s-game-modal .s-btn.primary:hover:not(:disabled),
+.panel :is(.primary, .hold):hover:not(:disabled),
+.sim .rpg-menu button.s-cta:hover { background: #ffe066; }
+.sim .s-btn.primary:active:not(:disabled),
+.s-game-modal .s-btn.primary:active:not(:disabled),
+.panel :is(.primary, .hold):active:not(:disabled),
+.panel .hold.active, .s-game-modal .s-btn.primary.on,
+.sim .rpg-menu button.s-cta:active { background: #fcc419; transform: translateY(2px); box-shadow: 0 0 0 2px #1d1b2c, 0 2px 0 2px #1d1b2c; }
+.sim .rpg-menu button.s-cta { justify-content: center; padding: 12px 14px; }
+.sim .rpg-menu button.s-cta::before { display: none; }
+/* anche i bottoni secondari (carta) con lo stesso carattere */
+.sim .s-btn, .s-game-modal .s-btn { font-family: Nunito, system-ui, sans-serif; font-weight: 800; }
+/* disattivati: stesso grigio-blu ovunque */
+.sim .s-btn.primary:disabled,
+.s-game-modal .s-btn.primary:disabled,
+.panel .primary:disabled { opacity: 1; background: #3d3a55; color: #9d9ab8; box-shadow: 0 0 0 2px #1d1b2c; }
+/* scelte selezionate (esami, bradi/normo/tachicardico…): gialle e leggibili, non oro sbiadito su scuro */
+.sim .s-exam.on, .s-seg button.on, .sim .s-seg button.on { background: #ffd43b; color: #1d1b2c; border-color: #1d1b2c; box-shadow: 0 0 0 2px #1d1b2c; }
+.sim .s-exam.on :is(.lb, .lb small, .meta) { color: #1d1b2c; }
+/* risposte all'auscultazione: carta come le altre scelte */
+.listen-prompt .choice { background: var(--paper, #fbf6e9); color: #1d1b2c; border-radius: 10px; box-shadow: 0 0 0 2px #1d1b2c; }
+.listen-prompt .choice:hover { background: #fff9db; }
+.listen-prompt .choice:active { background: #ffd43b; }
+@media (max-width: 520px) {
+  .sim .s-btn.primary, .s-game-modal .s-btn.primary, .panel :is(.primary, .hold), .sim .rpg-menu button.s-cta { font-size: 14px; }
+}

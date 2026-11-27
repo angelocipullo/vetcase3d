@@ -71,7 +71,7 @@ export function NarrativeView({ stage }: { stage: NarrativeStage }) {
       >
         {last && (
           <RpgMenu>
-            <button onClick={next}>{stage.cta}</button>
+            <button className="s-cta" onClick={next}>{stage.cta}</button>
           </RpgMenu>
         )}
       </DialogueBox>
@@ -161,7 +161,7 @@ export function QuizView({ stage }: { stage: QuizStage }) {
               <button key={o.id} className={cls} onClick={() => toggle(o.id)} disabled={!!result}>
                 <span className="rpg-letter">{stage.multi ? (sel ? '☑' : '☐') : LETTERS[i]}</span>
                 <span className="rpg-opt">
-                  {o.text}
+                  {o.bold ? <strong>{o.text}</strong> : o.text}
                   {result && (sel || o.score === 1) && <small>{o.feedback}</small>}
                 </span>
               </button>
@@ -377,7 +377,7 @@ export function VitalsView({ stage }: { stage: VitalsStage }) {
       </StageHeader>
       {!closed && (
         <button className="s-btn primary s-enter3d" onClick={() => open3D()}>
-          🏥 Visita {c.patient.name} in ambulatorio (3D)
+          🏥 Esegui EOG
         </button>
       )}
       <div className="s-vitals">
@@ -450,6 +450,8 @@ export function OrdersView({ stage }: { stage: OrdersStage }) {
   const [games, setGames] = useState<PendingGame[] | null>(null);
   const [sent, setSent] = useState<ResultDoc[] | null>(null);
   const [rel] = useState(() => dyn(stage.relevance, useSim.getState().ctx()));
+  // esami già refertati prima di questa fase (marcati "già eseguito"): non vanno ripetuti, quindi contano come fatti
+  const [doneBefore] = useState(() => new Set(useSim.getState().results.filter((r) => !r.refused).map((r) => r.exam)));
   const [scored, setScored] = useState<{ pts: number; lines: { exam: ExamId; text: string; tone: string }[] } | null>(null);
 
   const total = cart.reduce((a, e) => a + EXAMS[e].cost, 0);
@@ -500,14 +502,16 @@ export function OrdersView({ stage }: { stage: OrdersStage }) {
     const lines: { exam: ExamId; text: string; tone: string }[] = [];
     for (const [e, r] of Object.entries(rel) as [ExamId, { rel: string; why: string }][]) {
       const chosen = cart.includes(e);
+      const covered = chosen || doneBefore.has(e);
+      const why = !chosen && covered ? `${r.why} (già eseguito)` : r.why;
       if (r.rel === 'essential') {
         max += 10;
-        if (chosen) raw += 10;
-        lines.push({ exam: e, text: r.why, tone: chosen ? 'good' : 'bad' });
+        if (covered) raw += 10;
+        lines.push({ exam: e, text: why, tone: covered ? 'good' : 'bad' });
       } else if (r.rel === 'useful') {
         max += 4;
-        if (chosen) raw += 4;
-        lines.push({ exam: e, text: r.why, tone: chosen ? 'good' : 'muted' });
+        if (covered) raw += 4;
+        lines.push({ exam: e, text: why, tone: covered ? 'good' : 'muted' });
       } else if (r.rel === 'inappropriate' && chosen) {
         raw -= 8;
         lines.push({ exam: e, text: r.why, tone: 'bad' });
@@ -602,7 +606,7 @@ export function OrdersView({ stage }: { stage: OrdersStage }) {
           {pending.length > 0 && (
             <div className="s-pending">
               <p>In corso: {pending.map((d) => EXAMS[d.exam].short).join(', ')}</p>
-              <button className="s-btn" onClick={() => useSim.getState().waitForResults(180)}>⏳ Attendi i referti</button>
+              <button className="s-btn primary" onClick={() => useSim.getState().waitForResults(180)}>⏳ Attendi i referti</button>
             </div>
           )}
           {ready.map((d) => (

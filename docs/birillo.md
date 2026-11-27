@@ -1,4 +1,4 @@
-# Birillo: dati reali e dati generati
+# Raffaele: dati reali e dati generati
 
 Caso reale anonimizzato: gatto comune europeo, maschio castrato, 7 anni, 5 kg (nome di fantasia; ospedale veterinario universitario, 16/06–24/07/2026).
 I PDF originali contengono dati personali del proprietario e non sono versionati: i nomi dei file citati sotto si riferiscono alla copia locale.

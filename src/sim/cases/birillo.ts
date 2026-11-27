@@ -5,7 +5,7 @@ import { SimCase, SimCtx } from '../types';
 import { num } from '../format';
 
 /**
- * BIRILLO — gatto comune europeo, MC, 7 anni, 5 kg.
+ * RAFFAELE — gatto comune europeo, MC, 7 anni, 5 kg.
  * Caso reale anonimizzato (ospedale veterinario universitario, giugno–luglio 2026): iperaldosteronismo
  * primario (sindrome di Conn) da neoplasia surrenalica sinistra. Nome di fantasia; i documenti
  * originali non sono versionati.
@@ -28,12 +28,12 @@ const unstable = (ctx: SimCtx) =>
     ? 'anestesia generale controindicata: paziente con elettroliti non ancora stabilizzati (rischio aritmie e ipoventilazione). Prima stabilizzare.'
     : null;
 
-export const BIRILLO: SimCase = {
+export const RAFFAELE: SimCase = {
   id: 'birillo',
   title: 'Vomito, andatura incoordinata e “non ci vede bene”',
   difficulty: 3,
   arrival: '2026-06-16T15:50:00',
-  patient: { name: 'Birillo', species: 'gatto', breed: 'Comune europeo', sex: 'Maschio castrato', age: '7 anni', kg: KG, coat: 'tigrato, pelo corto' },
+  patient: { name: 'Raffaele', species: 'gatto', breed: 'Comune europeo', sex: 'Maschio castrato', age: '7 anni', kg: KG, coat: 'tigrato, pelo corto' },
   complaint:
     'tre episodi di vomito da ieri pomeriggio, poi ha iniziato a deambulare male; la proprietaria sospetta che non veda bene. Nei video il gatto presenta ventroflessione del collo e incoordinazione motoria.',
   cast: {
@@ -53,7 +53,7 @@ export const BIRILLO: SimCase = {
     trcSec: 2, // documento
     loc: 'ottundimento', // documento
     locDescription:
-      'Birillo è sdraiato sul tavolo con la testa flessa verso lo sterno. Apre gli occhi quando lo chiami e segue la tua voce, ma con lentezza; risponde agli stimoli tattili in modo rallentato e non cerca di scappare.',
+      'Raffaele è sdraiato sul tavolo con la testa flessa verso lo sterno. Apre gli occhi quando lo chiami e segue la tua voce, ma con lentezza; risponde agli stimoli tattili in modo rallentato e non cerca di scappare.',
     sbp: 210, // generato: "ipertensione persistente" nel documento, valore assente
   },
 
@@ -64,19 +64,19 @@ export const BIRILLO: SimCase = {
       phase: 'Triage',
       title: 'Arrivo in Pronto Soccorso',
       body:
-        'Martedì 16 giugno, ore 15:50. La proprietaria entra di corsa con un trasportino. Dentro c’è Birillo, gatto comune europeo tigrato, maschio castrato di 7 anni, circa 5 kg.\n\n«Da ieri ha vomitato tre volte, poi ha cominciato a camminare male… e credo che non ci veda bene. Guardi questi video.»\n\nNei video Birillo tiene il collo piegato con il mento verso il petto (ventroflessione) e barcolla.',
+        'Martedì 16 giugno, ore 15:50. La proprietaria entra di corsa con un trasportino. Dentro c’è Raffaele, gatto comune europeo tigrato, maschio castrato di 7 anni, circa 5 kg.\n\n«Da ieri ha vomitato tre volte, poi ha cominciato a camminare male… e credo che non ci veda bene. Guardi questi video.»\n\nNei video Raffaele tiene il collo piegato con il mento verso il petto (ventroflessione) e barcolla.',
       bullets: ['Sei il medico di turno in PS.', 'Ogni scelta consuma tempo simulato: il paziente evolve.'],
-      cta: 'Prendi in carico Birillo',
+      cta: 'Prendi in carico Raffaele',
     },
     {
       kind: 'quiz',
       id: 'primo',
       phase: 'Triage',
       title: 'Prima mossa',
-      question: 'Birillo è appena arrivato. Cosa fai per prima cosa?',
+      question: 'Raffaele è appena arrivato. Cosa fai per prima cosa?',
       points: 10,
       options: [
-        { id: 'a', text: 'Valuto rapidamente A-B-C e raccolgo un’anamnesi mirata dalla proprietaria', score: 1, feedback: 'Vie aeree pervie, respira, mucose rosee: nessuna manovra salvavita immediata. Un’anamnesi mirata orienta tutto il resto.' },
+        { id: 'a', text: 'Esegui anamnesi ed EOG', bold: true, score: 1, feedback: 'Vie aeree pervie, respira, mucose rosee: nessuna manovra salvavita immediata. Un’anamnesi mirata orienta tutto il resto.' },
         { id: 'b', text: 'Diazepam EV per controllare l’incoordinazione', score: 0, feedback: 'Non ci sono crisi convulsive: un sedativo deprime ulteriormente lo stato mentale e maschera il quadro neurologico.' },
         { id: 'c', text: 'TC total body urgente per escludere una lesione encefalica', score: 0, feedback: 'Esame che richiede anestesia in un paziente non ancora inquadrato né stabilizzato. Prima anamnesi, esame clinico e laboratorio di base.' },
         { id: 'd', text: 'Antiemetico e dimissione con controllo domani', score: 0, feedback: 'Ventroflessione del collo e deficit visivo non sono un semplice disturbo gastroenterico: il paziente va inquadrato oggi.', effects: [{ kind: 'time', min: 10 }] },
@@ -237,7 +237,7 @@ export const BIRILLO: SimCase = {
       id: 'pompa',
       phase: 'Stabilizzazione',
       title: 'Prepara la sacca e imposta la pompa',
-      intro: (ctx) => `Birillo pesa ${KG} kg. K⁺ misurato: ${kText(ctx)}. Hai sacche da 500 ml e fiale di KCl 2 mEq/ml.`,
+      intro: (ctx) => `Raffaele pesa ${KG} kg. K⁺ misurato: ${kText(ctx)}. Hai sacche da 500 ml e fiale di KCl 2 mEq/ml.`,
       bagMl: 500,
       kclMeqPerMl: 2,
       points: 15,
@@ -248,7 +248,7 @@ export const BIRILLO: SimCase = {
       phase: 'Terapia intensiva',
       title: 'Terapia intensiva: la prima notte',
       intro:
-        'Birillo è stabile e viene trasferito in terapia intensiva. Monitora il potassio durante la notte: puoi ripetere l’emogas, regolare la pompa e aggiungere farmaci. Il paziente evolve con il tempo.',
+        'Raffaele è stabile e viene trasferito in terapia intensiva. Monitora il potassio durante la notte: puoi ripetere l’emogas, regolare la pompa e aggiungere farmaci. Il paziente evolve con il tempo.',
       goal: 'Arriva al mattino seguente (almeno 16 ore) ricontrollando il K⁺ e mantenendo l’infusione sicura.',
       minHours: 16,
       target: { kMin: 3.5, kMax: 5.5 },
@@ -260,7 +260,7 @@ export const BIRILLO: SimCase = {
       phase: 'Ragionamento',
       title: 'Il potassio non sale',
       context: (ctx) =>
-        `Mattina del giorno 2. Ultimo K⁺: ${kText(ctx)} nonostante l’integrazione. Birillo ha ancora la ventroflessione del collo.`,
+        `Mattina del giorno 2. Ultimo K⁺: ${kText(ctx)} nonostante l’integrazione. Raffaele ha ancora la ventroflessione del collo.`,
       question: 'Perché il potassio non si normalizza?',
       points: 15,
       options: [
@@ -432,7 +432,7 @@ export const BIRILLO: SimCase = {
       conclusion: 'Nella norma.',
     }),
     urine: (ctx) => {
-      const fek = Math.round(4 + 30 * aldoEffective(BIRILLO.disease, ctx.therapy, ctx.clock));
+      const fek = Math.round(4 + 30 * aldoEffective(RAFFAELE.disease, ctx.therapy, ctx.clock));
       return {
         title: 'Esame urine (cistocentesi) + FE K⁺',
         source: 'misto',
@@ -524,7 +524,7 @@ export const BIRILLO: SimCase = {
     { id: 'iperplasia', text: 'Iperaldosteronismo primario da iperplasia surrenalica bilaterale', score: 0.5, feedback: 'La sindrome è giusta, ma la causa no: la TC mostra una lesione unilaterale a sinistra con il surrene destro nei limiti. Cambia la terapia: qui la chirurgia è risolutiva.' },
     { id: 'pdh', text: 'Iperadrenocorticismo ipofisi-dipendente (microadenoma ipofisario)', score: 0.1, feedback: 'La TC segnala un dubbio microadenoma, ma il quadro è mineralcorticoide (K⁺, alcalosi, ipertensione), non glucocorticoide: niente diabete, fragilità cutanea o addome pendulo.' },
     { id: 'feo', text: 'Feocromocitoma surrenalico', score: 0.2, feedback: 'Massa surrenalica con ipertensione, ma un feocromocitoma non spiega la perdita renale di K⁺, l’alcalosi e l’aldosterone elevato.' },
-    { id: 'irc', text: 'Malattia renale cronica con ipertensione secondaria', score: 0.2, feedback: 'Birillo ha una componente renale (azotemia, TC), ma è una conseguenza: non spiega una FE K⁺ così alta né l’aldosterone elevato.' },
+    { id: 'irc', text: 'Malattia renale cronica con ipertensione secondaria', score: 0.2, feedback: 'Raffaele ha una componente renale (azotemia, TC), ma è una conseguenza: non spiega una FE K⁺ così alta né l’aldosterone elevato.' },
     { id: 'tiro', text: 'Ipertiroidismo', score: 0, feedback: 'T4 totale nella norma.' },
   ],
   teaching: [

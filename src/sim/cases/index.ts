@@ -1,11 +1,11 @@
 import { EXAMS } from '../exams';
 import { SimCase } from '../types';
-import { MICHELE } from './michele';
-import { BIRILLO } from './birillo';
-import { NALA } from './nala';
+import { ALESSANDRO } from './michele';
+import { RAFFAELE } from './birillo';
+import { EMANUELE } from './nala';
 
 /** Registro dei casi del simulatore. Per aggiungerne uno: crea il file e aggiungilo qui. */
-export const SIM_CASES: SimCase[] = [MICHELE, NALA, BIRILLO];
+export const SIM_CASES: SimCase[] = [ALESSANDRO, EMANUELE, RAFFAELE];
 
 /**
  * Controlli di coerenza di un caso (pensati anche per casi generati automaticamente):

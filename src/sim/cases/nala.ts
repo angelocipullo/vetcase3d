@@ -2,7 +2,7 @@ import { row, txt } from '../results';
 import { Phys, ResultRow, SimCase } from '../types';
 
 /**
- * NALA — pitbull, femmina, 4 anni, 26 kg, mantello fulvo scuro.
+ * EMANUELE — pitbull, maschio, 4 anni, 26 kg, mantello fulvo scuro.
  * Caso reale anonimizzato (ospedale veterinario universitario, settembre–ottobre 2026):
  * diarrea cronica, grave anemia non rigenerativa con componente immunomediata e linfoadenomegalia
  * generalizzata; citologia linfonodale "iperplasia linfoide atipica", sospetto linfoma.
@@ -33,14 +33,14 @@ function canineGasRows(p: Phys): ResultRow[] {
   ];
 }
 
-export const NALA: SimCase = {
+export const EMANUELE: SimCase = {
   id: 'nala',
   title: 'Diarrea cronica, gengive pallide e linfonodi ingrossati',
   difficulty: 2,
   arrival: '2026-09-25T10:19:00',
-  patient: { name: 'Nala', species: 'cane', breed: 'Pitbull', sex: 'Femmina', age: '4 anni', kg: KG, coat: 'fulvo scuro, pelo raso' },
+  patient: { name: 'Emanuele', species: 'cane', breed: 'Pitbull', sex: 'Maschio', age: '4 anni', kg: KG, coat: 'fulvo scuro, pelo raso' },
   complaint:
-    'diarrea cronica da fine giugno (feci molli alternate a diarrea liquida con sangue vivo), vomito sporadico. Già trattata altrove per ehrlichiosi e babesiosi, con ricovero ad agosto. Ora mangia, ma la proprietaria nota le gengive pallide.',
+    'diarrea cronica da fine giugno (feci molli alternate a diarrea liquida con sangue vivo), vomito sporadico. Già trattato altrove per ehrlichiosi e babesiosi, con ricovero ad agosto. Ora mangia, ma la proprietaria nota le gengive pallide.',
   cast: {
     owner: { name: 'Proprietaria', sprite: { kind: 'human', skin: '#f1d0b5', hair: '#c9a26b', hairStyle: 'long', clothes: '#5f3dc4' } },
     patient: { kind: 'dog', fur: '#9a5b2e', dark: '#5c3218', eyes: '#c58b2a', muzzle: '#b97a48', blaze: true },
@@ -58,7 +58,7 @@ export const NALA: SimCase = {
     trcSec: 2,
     loc: 'vigile',
     locDescription:
-      'Nala entra scodinzolando, annusa tutto l’ambulatorio e si lascia visitare tranquillamente. È vigile e attiva, risponde subito quando la chiami.',
+      'Emanuele entra scodinzolando, annusa tutto l’ambulatorio e si lascia visitare tranquillamente. È vigile e attivo, risponde subito quando lo chiami.',
     sbp: 130,
   },
 
@@ -69,19 +69,19 @@ export const NALA: SimCase = {
       phase: 'Accettazione',
       title: 'Una paziente con una lunga storia',
       body:
-        'Venerdì 25 settembre, ore 10:19. Entra una signora con Nala, pitbull femmina di 4 anni, fulvo scuro, 26 kg. Ha con sé una cartellina piena di referti di altre strutture.\n\n«Da fine giugno ha diarrea e vomito. L’hanno curata per ehrlichia e babesia, ha preso il cortisone, ad agosto è stata pure ricoverata… ma la diarrea non passa: a volte è liquida, con sangue rosso.»\n\n«Adesso mangia, però guardi le gengive: sono bianche.»',
+        'Venerdì 25 settembre, ore 10:19. Entra una signora con Emanuele, pitbull maschio di 4 anni, fulvo scuro, 26 kg. Ha con sé una cartellina piena di referti di altre strutture.\n\n«Da fine giugno ha diarrea e vomito. L’hanno curato per ehrlichia e babesia, ha preso il cortisone, ad agosto è stato pure ricoverato… ma la diarrea non passa: a volte è liquida, con sangue rosso.»\n\n«Adesso mangia, però guardi le gengive: sono bianche.»',
       bullets: ['Caso reale anonimizzato, difficoltà media.', 'Una storia lunga e piena di diagnosi altrui: rimettila in ordine prima di ripetere esami.'],
-      cta: 'Prendi in carico Nala',
+      cta: 'Prendi in carico Emanuele',
     },
     {
       kind: 'quiz',
       id: 'primo',
       phase: 'Accettazione',
       title: 'Da dove parti?',
-      question: 'Nala è vigile e stabile, ma porta mesi di diagnosi e terapie diverse. Qual è la prima cosa da fare?',
+      question: 'Emanuele è vigile e stabile, ma porta mesi di diagnosi e terapie diverse. Qual è la prima cosa da fare?',
       points: 10,
       options: [
-        { id: 'a', text: 'Ricostruire l’anamnesi in ordine cronologico e fare un esame obiettivo completo, linfonodi compresi', score: 1, feedback: 'Corretto: nei pazienti cronici “già visti da tutti” il dato nuovo spesso emerge da un esame obiettivo fatto bene. Qui i linfonodi fanno la differenza.' },
+        { id: 'a', text: 'Esegui anamnesi ed EOG', bold: true, score: 1, feedback: 'Corretto: nei pazienti cronici “già visti da tutti” il dato nuovo spesso emerge da un esame obiettivo fatto bene. Qui i linfonodi fanno la differenza.' },
         { id: 'b', text: 'Ripetere subito le titolazioni per ehrlichia e babesia', score: 0.3, feedback: 'Le malattie trasmesse da vettori vanno riconsiderate, ma prima serve un quadro clinico completo. E la sierologia da sola non distingue esposizione e malattia.' },
         { id: 'c', text: 'Un altro ciclo di antibiotico empirico', score: 0, feedback: 'Ne ha già fatti senza risolvere: ripetere la stessa terapia senza una diagnosi non aiuta.' },
         { id: 'd', text: 'Cambiare crocchette e ricontrollare tra un mese', score: 0.1, feedback: 'Le mucose pallide richiedono un inquadramento adesso, non tra un mese.' },
@@ -97,16 +97,16 @@ export const NALA: SimCase = {
       budget: 8,
       points: 20,
       questions: [
-        { id: 'esordio', topic: 'Esordio', weight: 'key', source: 'documento', q: 'Quando e come è iniziato tutto?', a: 'A fine giugno: vomitava spesso, aveva diarrea, non mangiava ed era abbattuta.' },
+        { id: 'esordio', topic: 'Esordio', weight: 'key', source: 'documento', q: 'Quando e come è iniziato tutto?', a: 'A fine giugno: vomitava spesso, aveva diarrea, non mangiava ed era abbattuto.' },
         { id: 'dieta', topic: 'Dieta', weight: 'key', source: 'documento', q: 'Cosa mangiava prima che si ammalasse e cosa mangia adesso?', a: 'Prima le davo carne cruda. Adesso cucino io: manzo, maiale o pollo, piselli, patate o pasta, carote e broccoli, con un po’ di olio di salmone. Le crocchette medicate, gastrointestinali ed epatiche, non le vuole.' },
         { id: 'diagnosi', topic: 'Diagnosi precedenti', weight: 'key', source: 'documento', q: 'Che diagnosi le hanno fatto finora, e con quali esami?', a: 'In un’altra clinica le hanno trovato ehrlichia e babesia con il titolo, 1:80 tutte e due. Ha fatto antibiotici e flebo in day hospital. Poi hanno rifatto le analisi per le malattie infettive con la PCR ed erano tutte negative.' },
-        { id: 'cortisone', topic: 'Risposta alle terapie', weight: 'key', source: 'documento', q: 'Ha mai fatto cortisone? Come è andata?', a: 'Sì, ad agosto, per 8–10 giorni di prednisone. Stava molto meglio! Poi a metà agosto è peggiorata ed è stata ricoverata: anemia, infiammazione “di tutti gli organi” e il fegato alto.' },
+        { id: 'cortisone', topic: 'Risposta alle terapie', weight: 'key', source: 'documento', q: 'Ha mai fatto cortisone? Come è andata?', a: 'Sì, ad agosto, per 8–10 giorni di prednisone. Stava molto meglio! Poi a metà agosto è peggiorato ed è stato ricoverato: anemia, infiammazione “di tutti gli organi” e il fegato alto.' },
         { id: 'terapie', topic: 'Terapie in corso', weight: 'key', source: 'documento', q: 'Che farmaci o integratori prende adesso?', a: 'VSL#3, pantoprazolo, Glutamax e Carobin forte.' },
         { id: 'feci', topic: 'Feci e vomito', weight: 'key', source: 'documento', q: 'Com’è la diarrea adesso? E il vomito?', a: 'Alterna feci molli e diarrea liquida, a volte con sangue rosso vivo. Vomita una o due volte a settimana.' },
         { id: 'allergie', topic: 'Reazioni avverse', weight: 'key', source: 'documento', q: 'Ha mai avuto reazioni a farmaci?', a: 'Sì, durante la flebo ha avuto una reazione alle vitamine del gruppo B in vena.' },
         { id: 'analisi', topic: 'Esami precedenti', weight: 'useful', source: 'documento', q: 'Cosa mostravano le analisi e l’ecografia fatte altrove?', a: 'A luglio anemia lieve, globuli bianchi alti e piastrine basse; l’ecografia diceva intestino infiammato, fegato grasso e un problema ai reni, glomerulonefrite. Dopo il cortisone era ancora anemica, con le transaminasi alte, e una volta aveva il calcio bassissimo.' },
         { id: 'appetito', topic: 'Grandi funzioni', weight: 'useful', source: 'documento', q: 'Mangia volentieri? Beve e urina normalmente?', a: 'La dieta cotta la mangia con abbastanza appetito. Beve e fa pipì come sempre.' },
-        { id: 'profilassi', topic: 'Profilassi', weight: 'useful', source: 'documento', q: 'È vaccinata? Fa l’antiparassitario?', a: 'È vaccinata e le metto la fialetta antiparassitaria.' },
+        { id: 'profilassi', topic: 'Profilassi', weight: 'useful', source: 'documento', q: 'È vaccinato? Fa l’antiparassitario?', a: 'È vaccinato e gli metto la fialetta antiparassitaria.' },
         { id: 'ambiente', topic: 'Ambiente', weight: 'useful', source: 'documento', q: 'Dove vive?', a: 'In città, in appartamento.' },
         { id: 'nome', topic: '—', weight: 'irrelevant', source: 'generato', q: 'Chi ha scelto il nome?', a: 'Mia figlia, ha visto un cartone animato.' },
         { id: 'pettorina', topic: '—', weight: 'irrelevant', source: 'generato', q: 'Usa collare o pettorina?', a: 'La pettorina, tira tantissimo!' },
@@ -117,7 +117,7 @@ export const NALA: SimCase = {
       id: 'eog',
       phase: 'Esame clinico',
       title: 'Esame obiettivo generale',
-      intro: 'Nala è collaborativa: compila la scheda con le prove pratiche.',
+      intro: 'Emanuele è collaborativo: compila la scheda con le prove pratiche.',
       required: ['temp', 'polso', 'resp', 'mucose', 'trc', 'loc'],
       optional: ['pa'],
       points: 20,
@@ -164,7 +164,7 @@ export const NALA: SimCase = {
         urine: { rel: 'useful', why: 'Storia di glomerulonefrite: proteinuria (UPC).' },
         rx: { rel: 'useful', why: 'Linfonodi intratoracici e polmoni, per la stadiazione.' },
         pa: { rel: 'useful', why: 'Glomerulonefrite: la pressione va controllata.' },
-        gruppo: { rel: 'neutral', why: 'Nala è stabile e compensata: per ora non serve una trasfusione.' },
+        gruppo: { rel: 'neutral', why: 'Emanuele è stabile e compensato: per ora non serve una trasfusione.' },
         emogas: { rel: 'neutral', why: 'Paziente stabile, nessun disturbo acido-base sospetto.' },
         ecg: { rel: 'neutral', why: 'Polso ritmico, auscultazione normale.' },
         endoscopia: { rel: 'inappropriate', why: 'Richiede anestesia con un ematocrito al 17%: prima l’anemia, poi eventualmente le biopsie intestinali.' },
@@ -203,7 +203,7 @@ export const NALA: SimCase = {
         { id: 'a', text: 'Conferma una componente immunomediata: ora cerco una causa scatenante (neoplasia, infezione, farmaci)', score: 1, feedback: 'Esatto. Un’anemia immunomediata si dice primaria solo dopo aver escluso le cause secondarie, e qui c’è una linfoadenomegalia generalizzata da spiegare.' },
         { id: 'b', text: 'È un’anemia immunomediata primaria: il caso è chiuso', score: 0.3, feedback: 'Troppo presto: i linfonodi ingrossati vanno spiegati prima di parlare di forma idiopatica.' },
         { id: 'c', text: 'Esclude un linfoma', score: 0, feedback: 'Al contrario: il linfoma è una delle cause più note di anemia immunomediata secondaria.' },
-        { id: 'd', text: 'È un falso positivo da trasfusioni precedenti', score: 0, feedback: 'Nala non è mai stata trasfusa.' },
+        { id: 'd', text: 'È un falso positivo da trasfusioni precedenti', score: 0, feedback: 'Emanuele non è mai stato trasfuso.' },
       ],
       explanation:
         'Cause di anemia immunomediata secondaria nel cane: neoplasie (soprattutto linfoma), infezioni (Babesia, Ehrlichia, Leishmania, Anaplasma), farmaci, vaccinazioni recenti. *Coombs simulato: nei documenti è richiesto il 29/09 e la visita del 30/10 parla di anemia immunomediata.',
@@ -221,7 +221,7 @@ export const NALA: SimCase = {
         { id: 'a', text: 'Biopsia escissionale di un linfonodo per istologia e immunoistochimica (± PARR per la clonalità), prima di iniziare il cortisone', score: 1, feedback: 'Corretto: è il consiglio del patologo. L’iperplasia atipica è una lesione borderline e solo l’istologia distingue un linfoma iniziale da una reazione.' },
         { id: 'b', text: 'È un linfoma: inizio subito il protocollo CHOP', score: 0.2, feedback: 'La citologia non è diagnostica: i blasti sono pochi e solo lievemente atipici. Prima la conferma.' },
         { id: 'c', text: 'È una reazione: nessun altro accertamento', score: 0, feedback: '“Atipica” vuol dire proprio che non si può escludere una neoplasia.' },
-        { id: 'd', text: 'Prednisolone immunosoppressivo e ricontrollo i linfonodi tra un mese', score: 0.2, feedback: 'Il cortisone può far regredire un linfoma e rendere poi illeggibile la biopsia. Ricorda che ad agosto Nala era migliorata con il prednisone: succede sia nell’anemia immunomediata sia nel linfoma.' },
+        { id: 'd', text: 'Prednisolone immunosoppressivo e ricontrollo i linfonodi tra un mese', score: 0.2, feedback: 'Il cortisone può far regredire un linfoma e rendere poi illeggibile la biopsia. Ricorda che ad agosto Emanuele era migliorato con il prednisone: succede sia nell’anemia immunomediata sia nel linfoma.' },
       ],
       explanation: 'Iperplasia linfoide atipica = lesione borderline. Si ripete l’aspirato su altri linfonodi oppure si asporta un linfonodo intero per istologia e immunoistochimica. Prelevare prima di iniziare i corticosteroidi.',
     },
@@ -230,7 +230,7 @@ export const NALA: SimCase = {
       id: 'piano',
       phase: 'Terapia',
       title: 'Piano terapeutico e nutrizionale',
-      question: 'Cosa imposti per Nala? (seleziona tutte le scelte corrette)',
+      question: 'Cosa imposti per Emanuele? (seleziona tutte le scelte corrette)',
       multi: true,
       points: 20,
       options: [
@@ -241,7 +241,7 @@ export const NALA: SimCase = {
         { id: 'olio', text: 'Olio di salmone, mezzo cucchiaino a pasto', score: 1, feedback: 'Indicazione reale della visita nutrizionale: fonte di omega-3.' },
         { id: 'crudo', text: 'Tornare alla carne cruda, più “naturale”', score: 0, feedback: 'In un cane immunodepresso la carne cruda aumenta il rischio di Salmonella e altri patogeni.' },
         { id: 'vitb', text: 'Vitamine del gruppo B in vena per l’anemia', score: 0, feedback: 'Ha già avuto una reazione avversa e non c’è carenza dimostrata.' },
-        { id: 'trasf', text: 'Trasfusione immediata', score: 0, feedback: 'Nala è vigile, normocardica e compensata: oggi la trasfusione non è indicata.' },
+        { id: 'trasf', text: 'Trasfusione immediata', score: 0, feedback: 'Emanuele è vigile, normocardico e compensato: oggi la trasfusione non è indicata.' },
       ],
       after: [{ kind: 'flag', flag: 'terapia' }],
       explanation: 'Trattare l’anemia immunomediata senza perdere la diagnosi di fondo, proteggere dal tromboembolismo, monitorare la risposta e rendere completa la dieta casalinga.',
@@ -387,7 +387,7 @@ export const NALA: SimCase = {
   observation: (ctx) =>
     ctx.flags.terapia
       ? ['Mucose ancora pallide, ma più rosee nei controlli successivi', 'Linfonodi superficiali aumentati di volume', 'Vigile, mangia la dieta casalinga']
-      : ['Mucose pallide', 'Linfonodi retrofaringei e prescapolari aumentati di volume, bilateralmente', 'Vigile e attiva, buona condizione corporea', 'Feci molli con sangue rosso vivo'],
+      : ['Mucose pallide', 'Linfonodi retrofaringei e prescapolari aumentati di volume, bilateralmente', 'Vigile e attivo, buona condizione corporea', 'Feci molli con sangue rosso vivo'],
 
   realCase: [
     { date: 'giugno–agosto 2026', text: 'Altra struttura. Da fine giugno vomito, diarrea, anoressia, abbattimento (alimentata con carne cruda). Titolazioni ehrlichia e babesia 1:80: antibiotico e fluidoterapia (reazione avversa a vitamine B EV). A luglio anemia lieve, leucocitosi, piastrinopenia; eco: enteropatia infiammatoria, steatosi epatica, glomerulonefrite. Poi grave ipocalcemia, PCR infettive negative, 8–10 giorni di prednisone con miglioramento. A metà agosto ricovero per stato infiammatorio multiorgano, anemia non rigenerativa, ALT alta.' },
