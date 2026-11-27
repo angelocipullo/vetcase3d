@@ -743,7 +743,7 @@ export function DopplerGame({ sbp, hr, onDone }: { sbp: number; hr: number; onDo
       </div>
       <div className="s-row">
         <button
-          className={`s-btn ${inflating ? 'on' : ''}`}
+          className={`s-btn primary ${inflating ? 'on' : ''}`}
           onPointerDown={() => setInflating(true)}
           onPointerUp={() => setInflating(false)}
           onPointerLeave={() => setInflating(false)}

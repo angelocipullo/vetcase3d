@@ -71,7 +71,7 @@ export function NarrativeView({ stage }: { stage: NarrativeStage }) {
       >
         {last && (
           <RpgMenu>
-            <button onClick={next}>{stage.cta}</button>
+            <button className="s-cta" onClick={next}>{stage.cta}</button>
           </RpgMenu>
         )}
       </DialogueBox>
@@ -606,7 +606,7 @@ export function OrdersView({ stage }: { stage: OrdersStage }) {
           {pending.length > 0 && (
             <div className="s-pending">
               <p>In corso: {pending.map((d) => EXAMS[d.exam].short).join(', ')}</p>
-              <button className="s-btn" onClick={() => useSim.getState().waitForResults(180)}>⏳ Attendi i referti</button>
+              <button className="s-btn primary" onClick={() => useSim.getState().waitForResults(180)}>⏳ Attendi i referti</button>
             </div>
           )}
           {ready.map((d) => (
