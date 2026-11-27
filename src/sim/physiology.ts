@@ -8,7 +8,7 @@ import { DiseaseProfile, Phys, Therapy } from './types';
  * la correzione è lenta (volume "efficace" ~3,8 L/kg). Con eccesso di aldosterone la secrezione
  * distale cresce in modo ripido con il K plasmatico (~K³): anche l'integrazione massima sicura
  * (0,5 mEq/kg/h) si stabilizza sotto 3,5 mEq/L → ipokaliemia refrattaria, il cuore didattico
- * del caso Birillo. Con lo spironolattone la perdita cala e l'integrazione va ridotta.
+ * del caso Raffaele. Con lo spironolattone la perdita cala e l'integrazione va ridotta.
  */
 
 export const K_MAX_SAFE = 0.5; // mEq/kg/h

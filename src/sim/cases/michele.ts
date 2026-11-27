@@ -2,23 +2,23 @@ import { bloodGasRows, row, txt } from '../results';
 import { SimCase } from '../types';
 
 /**
- * MICHELE — gatto europeo, maschio intero, 3 anni, 4,2 kg.
+ * ALESSANDRO — gatto europeo, maschio intero, 3 anni, 4,2 kg.
  * Caso INTERAMENTE GENERATO a scopo didattico (nessuna documentazione reale):
  * infezione progressiva da FeLV con anemia non rigenerativa grave.
- * Più semplice di Birillo: niente pompa né terapia intensiva; il nucleo è riconoscere l'anemia,
+ * Più semplice di Raffaele: niente pompa né terapia intensiva; il nucleo è riconoscere l'anemia,
  * capire che non è rigenerativa, interpretare il test FeLV, trasfondere in sicurezza e gestire
  * l'infezione (isolamento, conviventi, prognosi). Vedi docs/michele.md.
  */
 
 const KG = 4.2;
 
-export const MICHELE: SimCase = {
+export const ALESSANDRO: SimCase = {
   id: 'michele',
   title: 'Gatto abbattuto che non mangia da giorni',
   difficulty: 1,
   generated: true,
   arrival: '2026-09-03T10:20:00',
-  patient: { name: 'Michele', species: 'gatto', breed: 'Europeo', sex: 'Maschio intero', age: '3 anni', kg: KG, coat: 'rosso tigrato' },
+  patient: { name: 'Alessandro', species: 'gatto', breed: 'Europeo', sex: 'Maschio intero', age: '3 anni', kg: KG, coat: 'rosso tigrato' },
   complaint: 'da circa cinque giorni è abbattuto, mangia pochissimo e dorme tutto il giorno. Il proprietario ha notato che “ha la bocca pallida” e che respira veloce.',
   cast: {
     owner: { name: 'Proprietario', sprite: { kind: 'human', skin: '#e0ac86', hair: '#1f1f1f', hairStyle: 'short', clothes: '#1c7ed6' } },
@@ -37,7 +37,7 @@ export const MICHELE: SimCase = {
     trcSec: 2,
     loc: 'vigile',
     locDescription:
-      'Michele è accucciato nel trasportino, ma quando lo chiami alza subito la testa, ti segue con lo sguardo e reagisce normalmente quando lo tocchi. È solo molto stanco.',
+      'Alessandro è accucciato nel trasportino, ma quando lo chiami alza subito la testa, ti segue con lo sguardo e reagisce normalmente quando lo tocchi. È solo molto stanco.',
     sbp: 125,
   },
 
@@ -48,19 +48,19 @@ export const MICHELE: SimCase = {
       phase: 'Triage',
       title: 'Arrivo in Pronto Soccorso',
       body:
-        'Giovedì 3 settembre, ore 10:20. Un ragazzo appoggia sul bancone un trasportino. Dentro c’è Michele, gatto europeo rosso tigrato, maschio non castrato di 3 anni.\n\n«Da quasi una settimana è giù, mangia pochissimo e dorme sempre. Stamattina gli ho guardato la bocca ed è bianca. E respira veloce anche da fermo.»',
+        'Giovedì 3 settembre, ore 10:20. Un ragazzo appoggia sul bancone un trasportino. Dentro c’è Alessandro, gatto europeo rosso tigrato, maschio non castrato di 3 anni.\n\n«Da quasi una settimana è giù, mangia pochissimo e dorme sempre. Stamattina gli ho guardato la bocca ed è bianca. E respira veloce anche da fermo.»',
       bullets: ['Caso più semplice: concentrati sull’inquadramento.', 'Nessun limite di tempo nelle domande: ragiona con calma.'],
-      cta: 'Prendi in carico Michele',
+      cta: 'Prendi in carico Alessandro',
     },
     {
       kind: 'quiz',
       id: 'primo',
       phase: 'Triage',
       title: 'Prima mossa',
-      question: 'Michele respira veloce e ha la bocca pallida. Cosa fai per prima cosa?',
+      question: 'Alessandro respira veloce e ha la bocca pallida. Cosa fai per prima cosa?',
       points: 10,
       options: [
-        { id: 'a', text: 'Valuto A-B-C maneggiandolo con delicatezza e raccolgo l’anamnesi', score: 1, feedback: 'Corretto: respira, vie aeree libere, nessun arresto. Un gatto anemico decompensa facilmente con lo stress: manipolazione minima.' },
+        { id: 'a', text: 'Esegui anamnesi ed EOG', bold: true, score: 1, feedback: 'Corretto: respira, vie aeree libere, nessun arresto. Un gatto anemico decompensa facilmente con lo stress: manipolazione minima.' },
         { id: 'b', text: 'Lo immobilizzo e faccio subito un prelievo dalla giugulare', score: 0.3, feedback: 'Il prelievo servirà, ma prima un rapido A-B-C e l’anamnesi. Un contenimento energico può farlo collassare.' },
         { id: 'c', text: 'Radiografia del torace immediata in decubito dorsale', score: 0, feedback: 'Il decubito dorsale in un gatto dispnoico e anemico è pericoloso; e non è la prima cosa da fare.' },
         { id: 'd', text: 'Antibiotico e lo rimando a casa', score: 0, feedback: 'Mucose pallide e tachipnea a riposo vanno inquadrate subito.' },
@@ -87,7 +87,7 @@ export const MICHELE: SimCase = {
         { id: 'esordio', topic: 'Decorso', weight: 'useful', source: 'generato', q: 'Da quanto tempo lo vede così? È peggiorato in fretta?', a: 'Da una settimana circa, ma già da un mese era più pigro e dimagrito.' },
         { id: 'traumi', topic: 'Traumi/sanguinamenti', weight: 'useful', source: 'generato', q: 'Ha avuto ferite che sanguinavano o traumi?', a: 'Solo i soliti graffi dalle lotte, niente di grave.' },
         { id: 'antiparassitari', topic: 'Antiparassitari', weight: 'useful', source: 'generato', q: 'Ha fatto terapie antiparassitarie? Quando l’ultima?', a: 'L’ultimo antipulci è di un anno fa. In estate gli ho visto qualche pulce.' },
-        { id: 'colore', topic: '—', weight: 'irrelevant', source: 'generato', q: 'Perché l’avete chiamato Michele?', a: 'Come mio nonno, aveva lo stesso carattere!' },
+        { id: 'colore', topic: '—', weight: 'irrelevant', source: 'generato', q: 'Perché l’avete chiamato Alessandro?', a: 'Come mio nonno, aveva lo stesso carattere!' },
         { id: 'lettiera', topic: '—', weight: 'irrelevant', source: 'generato', q: 'Che marca di lettiera usate?', a: 'Quella agglomerante del supermercato.' },
       ],
     },
@@ -174,7 +174,7 @@ export const MICHELE: SimCase = {
         { id: 'a', text: 'Antigenemia FeLV: in un gatto con questi segni è probabile un’infezione progressiva, da confermare (PCR provirale o ripetizione)', score: 1, feedback: 'Corretto. Il p27 indica virus circolante; con anemia non rigenerativa e leucopenia l’infezione progressiva è molto probabile. La conferma serve per la prognosi e per i conviventi.' },
         { id: 'b', text: 'Diagnosi definitiva di leucemia (tumore del sangue)', score: 0.1, feedback: 'FeLV è il virus, non la diagnosi di leucemia: il gatto può sviluppare linfoma o leucemia, ma il test non lo dice.' },
         { id: 'c', text: 'Probabile falso positivo: il gatto è giovane', score: 0, feedback: 'I falsi positivi esistono, soprattutto in gatti sani di popolazioni a bassa prevalenza; qui il sospetto clinico è alto.' },
-        { id: 'd', text: 'Significa che è stato vaccinato contro FeLV', score: 0, feedback: 'Il vaccino non positivizza il test per l’antigene p27, e Michele non è mai stato vaccinato.' },
+        { id: 'd', text: 'Significa che è stato vaccinato contro FeLV', score: 0, feedback: 'Il vaccino non positivizza il test per l’antigene p27, e Alessandro non è mai stato vaccinato.' },
       ],
       explanation: 'Esiti dell’infezione da FeLV: abortiva, regressiva (provirus integrato, antigene negativo) e progressiva (antigene e provirus positivi, prognosi peggiore: anemia, linfoma, immunodepressione).',
     },
@@ -190,13 +190,13 @@ export const MICHELE: SimCase = {
         { id: 'a', text: 'Tipizzare il gruppo sanguigno (A/B/AB) e fare il crossmatch', score: 1, feedback: 'Esatto: i gatti hanno alloanticorpi naturali. Un gatto di gruppo B che riceve sangue A può avere una reazione emolitica mortale già alla prima trasfusione.' },
         { id: 'b', text: 'Niente: alla prima trasfusione non servono test', score: 0, feedback: 'Vale (con riserve) nel cane, NON nel gatto: gli anticorpi anti-A dei gatti B sono naturali e potenti.' },
         { id: 'c', text: 'Desametasone per prevenire reazioni', score: 0, feedback: 'Non previene le reazioni emolitiche e immunodeprime un gatto già FeLV positivo.' },
-        { id: 'd', text: 'Integrare ferro per bocca e aspettare', score: 0, feedback: 'Non c’è carenza di ferro e il midollo non risponde: Michele ha bisogno di ossigeno adesso.' },
+        { id: 'd', text: 'Integrare ferro per bocca e aspettare', score: 0, feedback: 'Non c’è carenza di ferro e il midollo non risponde: Alessandro ha bisogno di ossigeno adesso.' },
       ],
       after: [
         { kind: 'flag', flag: 'transfused' },
         { kind: 'therapy', text: 'Trasfusione di sangue intero, gruppo A compatibile al crossmatch, 10 ml/kg' },
       ],
-      explanation: 'Michele è di gruppo A (dato simulato): riceve 10 ml/kg di sangue intero A compatibile al crossmatch. Dopo la trasfusione l’HCT sale al 19% e la tachipnea si risolve.',
+      explanation: 'Alessandro è di gruppo A (dato simulato): riceve 10 ml/kg di sangue intero A compatibile al crossmatch. Dopo la trasfusione l’HCT sale al 19% e la tachipnea si risolve.',
     },
     {
       kind: 'quiz',
@@ -213,7 +213,7 @@ export const MICHELE: SimCase = {
         { id: 'castrare', text: 'Castrazione (quando stabile) e vita in casa', score: 1, feedback: 'Riduce lotte e vagabondaggio, quindi trasmissione ad altri gatti e nuove infezioni.' },
         { id: 'myco', text: 'Doxiciclina in attesa della PCR per Mycoplasma', score: 1, feedback: 'Ragionevole: i micoplasmi emotropi sono frequenti negli anemici FeLV positivi e peggiorano l’anemia.' },
         { id: 'eutanasia', text: 'Proporre subito l’eutanasia: con la FeLV non c’è nulla da fare', score: 0, feedback: 'No: molti gatti FeLV positivi vivono mesi o anni con buona qualità di vita. Si decide in base al decorso.' },
-        { id: 'vaccinoMichele', text: 'Vaccinare Michele contro la FeLV', score: 0, feedback: 'Inutile in un gatto già infetto.' },
+        { id: 'vaccinoAlessandro', text: 'Vaccinare Alessandro contro la FeLV', score: 0, feedback: 'Inutile in un gatto già infetto.' },
         { id: 'cortisone', text: 'Prednisolone ad alte dosi a lungo termine', score: 0, feedback: 'Senza una componente immunomediata dimostrata, immunodeprime un gatto già immunodepresso.' },
       ],
       explanation: 'La gestione del gatto FeLV positivo si basa su: controlli ogni 6 mesi, prevenzione delle infezioni secondarie, trattamento tempestivo delle complicazioni e tutela degli altri gatti.',

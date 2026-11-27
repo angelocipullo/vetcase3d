@@ -161,7 +161,7 @@ export function QuizView({ stage }: { stage: QuizStage }) {
               <button key={o.id} className={cls} onClick={() => toggle(o.id)} disabled={!!result}>
                 <span className="rpg-letter">{stage.multi ? (sel ? '☑' : '☐') : LETTERS[i]}</span>
                 <span className="rpg-opt">
-                  {o.text}
+                  {o.bold ? <strong>{o.text}</strong> : o.text}
                   {result && (sel || o.score === 1) && <small>{o.feedback}</small>}
                 </span>
               </button>
@@ -377,7 +377,7 @@ export function VitalsView({ stage }: { stage: VitalsStage }) {
       </StageHeader>
       {!closed && (
         <button className="s-btn primary s-enter3d" onClick={() => open3D()}>
-          🏥 Visita {c.patient.name} in ambulatorio (3D)
+          🏥 Esegui EOG
         </button>
       )}
       <div className="s-vitals">

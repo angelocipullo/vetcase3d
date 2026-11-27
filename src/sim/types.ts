@@ -154,6 +154,8 @@ export type Effect =
 export interface QuizOption {
   id: string;
   text: string;
+  /** Testo dell'opzione in grassetto. */
+  bold?: boolean;
   /** 0..1 (1 = risposta migliore; valori intermedi = parzialmente corretta). Nei multi-select: true/false. */
   score: number;
   feedback: string;

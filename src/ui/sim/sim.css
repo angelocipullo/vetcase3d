@@ -555,7 +555,7 @@
 .s-strip .cursor { stroke: var(--acc); stroke-width: 2; vector-effect: non-scaling-stroke; }
 
 /* ingresso nell ambulatorio 3D dalla scheda di PS */
-.s-enter3d { width: 100%; margin: 4px 0 12px; font-size: 16px; padding: 14px 16px; }
+.s-enter3d, .sim .s-btn.s-enter3d { width: 100%; margin: 4px 0 12px; font-size: 16px; padding: 14px 16px; font-weight: 800; }
 
 /* finestre aperte sopra l ambulatorio 3D */
 .s-game-modal.over-clinic { z-index: 45; }

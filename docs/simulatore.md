@@ -8,7 +8,7 @@ L'ambulatorio 3D resta disponibile come prototipo dalla schermata del titolo.
 
 Un caso è una sequenza di **fasi** (`Stage`). Ogni tipo di fase è un meccanismo di gioco riusabile:
 
-| Tipo | Meccanica | Esempio (Birillo) |
+| Tipo | Meccanica | Esempio (Raffaele) |
 |---|---|---|
 | `narrative` | testo e scelta di proseguire | arrivo in PS |
 | `quiz` | scelta multipla con distrattori, senza limite di tempo (il gioco è didattico); risposte parziali, effetti sul paziente | "Cosa fai per primo?", scala di Greco, sospetto diagnostico |
@@ -29,9 +29,9 @@ Sei aree (`src/sim/scoring.ts`): ragionamento clinico, anamnesi, esame clinico, 
 
 | Caso | Difficoltà | Origine | Diagnosi |
 |---|---|---|---|
-| Michele (`cases/michele.ts`) | facile | generato | FeLV progressiva con anemia non rigenerativa ([docs/michele.md](michele.md)) |
-| Nala (`cases/nala.ts`) | media | reale, anonimizzato | anemia immunomediata secondaria con iperplasia linfoide atipica, sospetto linfoma ([docs/nala.md](nala.md)) |
-| Birillo (`cases/birillo.ts`) | difficile | reale, anonimizzato | iperaldosteronismo primario ([docs/birillo.md](birillo.md)) |
+| Alessandro (`cases/michele.ts`) | facile | generato | FeLV progressiva con anemia non rigenerativa ([docs/michele.md](michele.md)) |
+| Emanuele (`cases/nala.ts`) | media | reale, anonimizzato | anemia immunomediata secondaria con iperplasia linfoide atipica, sospetto linfoma ([docs/nala.md](nala.md)) |
+| Raffaele (`cases/birillo.ts`) | difficile | reale, anonimizzato | iperaldosteronismo primario ([docs/birillo.md](birillo.md)) |
 
 ## Interfaccia in stile RPG
 
@@ -77,10 +77,10 @@ Un caso definisce: segnalamento, `disease` (profilo per il modello fisiologico),
 
 ## Verso la generazione di casi diversi
 
-Il motore non contiene nulla di specifico di Birillo: tutto ciò che è clinico sta nel file del caso. Questo permette di **generare** casi nuovi in tre modi, dal più semplice al più ambizioso:
+Il motore non contiene nulla di specifico di Raffaele: tutto ciò che è clinico sta nel file del caso. Questo permette di **generare** casi nuovi in tre modi, dal più semplice al più ambizioso:
 
 1. **Varianti dello stesso caso.** Parametri casuali entro intervalli plausibili (K⁺ iniziale, PAS, peso, lato della massa, tempi di risposta ai farmaci) e opzioni dei quiz rimescolate. Si ottengono partite diverse con la stessa malattia.
 2. **Nuove malattie sullo stesso modello fisiologico.** `DiseaseProfile` va esteso con altri "assi" fisiopatologici (es. `insulinDeficit` per DKA, `renalLoss` per IRC, `hypovolemia` per shock, `gluco` per Cushing) e `tick()` va aggiornato. I casi poi combinano gli assi: DKA = deficit di insulina + diuresi osmotica + acidosi, ostruzione uretrale = iperkaliemia + azotemia post-renale, e così via.
-3. **Casi generati da documentazione clinica.** La pipeline è quella usata per Birillo: si estraggono dai referti reali (PDF della cartella, anonimizzati e non versionati) segnalamento, anamnesi, parametri PS, esami e timeline; un LLM produce un `SimCase` in JSON completando i dati mancanti (marcati `generato`) e scrivendo quiz con distrattori plausibili; `validateCase` più una revisione clinica umana decidono se pubblicarlo. Per farlo serve una versione **serializzabile** del caso: le funzioni dinamiche (`(ctx) => …`) vanno sostituite da descrittori dichiarativi, ad esempio `{ "type": "bloodGas" }`, `{ "type": "static", "rows": [...] }` oppure `{ "type": "byK", "thresholds": [...] }`, interpretati dal motore.
+3. **Casi generati da documentazione clinica.** La pipeline è quella usata per Raffaele: si estraggono dai referti reali (PDF della cartella, anonimizzati e non versionati) segnalamento, anamnesi, parametri PS, esami e timeline; un LLM produce un `SimCase` in JSON completando i dati mancanti (marcati `generato`) e scrivendo quiz con distrattori plausibili; `validateCase` più una revisione clinica umana decidono se pubblicarlo. Per farlo serve una versione **serializzabile** del caso: le funzioni dinamiche (`(ctx) => …`) vanno sostituite da descrittori dichiarativi, ad esempio `{ "type": "bloodGas" }`, `{ "type": "static", "rows": [...] }` oppure `{ "type": "byK", "thresholds": [...] }`, interpretati dal motore.
 
-Il passo successivo consigliato è introdurre il formato JSON dichiarativo (punto 3) e convertire Birillo in quel formato: è il prerequisito per generare casi senza scrivere codice.
+Il passo successivo consigliato è introdurre il formato JSON dichiarativo (punto 3) e convertire Raffaele in quel formato: è il prerequisito per generare casi senza scrivere codice.

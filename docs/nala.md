@@ -1,6 +1,6 @@
-# Nala: dati reali e dati generati
+# Emanuele: dati reali e dati generati
 
-Caso reale anonimizzato: pitbull femmina, 4 anni, 26 kg, mantello fulvo scuro (nome di fantasia; ospedale veterinario universitario, 25/09–30/10/2026). Codice: `src/sim/cases/nala.ts`. Difficoltà media.
+Caso reale anonimizzato: pitbull, 4 anni (maschio nel gioco), 26 kg, mantello fulvo scuro (nome di fantasia; ospedale veterinario universitario, 25/09–30/10/2026). Codice: `src/sim/cases/nala.ts`. Difficoltà media.
 I PDF originali contengono dati personali della proprietaria e non sono versionati.
 
 **Diagnosi del caso:** anemia immunomediata secondaria con iperplasia linfoide atipica; sospetto linfoma, da confermare con istologia e immunoistochimica (la conferma istologica non è nella documentazione).
